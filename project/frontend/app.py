@@ -30,7 +30,13 @@ if st.button("Compress", type="primary"):
     with st.spinner("Running pipeline..."):
         resp = requests.post(
             "http://localhost:8000/compress",
-            json={"session_id": session_id, "query": query, "context": context},
+            json={
+                "session_id": session_id, 
+                "query": query, 
+                "context": context,
+                "cost_pressure": cost_pressure,
+                "latency_pressure": latency_pressure
+            },
         )
         data = resp.json()
 
@@ -46,8 +52,22 @@ if st.button("Compress", type="primary"):
     # TODO: wire up eval_harness results here once /compress is live -
     # cost reduction, reasoning retention, latency speedup panels.
 
-st.divider()
-st.caption(
-    "Next: wire recovery panel (Stage 7) - show a dropped chunk being "
-    "retrieved live when the LLM answer signals missing info."
-)
+    st.divider()
+
+    st.subheader("Stage 7: Recovery Index Demo")
+    st.markdown("Did the LLM say it's missing context? Ask the **Recovery Index** to retrieve dropped chunks instantly.")
+    
+    missing_query = st.text_input("What is the LLM looking for?", placeholder="e.g. 'Authentication flow' or 'API keys'")
+    
+    if st.button("Recover Dropped Context", type="secondary"):
+        with st.spinner("Checking ChromaDB/Memory store..."):
+            rec_resp = requests.post(
+                f"http://localhost:8000/recover?session_id={session_id}&missing_entity={missing_query}"
+            )
+            rec_data = rec_resp.json()
+            
+            if rec_data.get("found"):
+                st.success("Target context recovered successfully! Ready to re-inject.")
+                st.code(rec_data["results"]["documents"][0][0])
+            else:
+                st.warning("No dropped context matches that concept.")

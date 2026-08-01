@@ -33,12 +33,25 @@ def build_code_graph(source: str) -> list[CodeNode]:
     try:
         tree = ast.parse(source)
     except SyntaxError:
-        # Fall back: treat as opaque text chunk, don't crash the pipeline
-        return [CodeNode(
-            id="raw_0", name="raw_block", kind="text",
-            signature="", docstring="", body=source,
-            token_estimate=len(source.split()),
-        )]
+        # Fall back: regex/line-based chunker for messy code
+        import re
+        nodes: list[CodeNode] = []
+        # Split by typical block starters (def, class, etc) or blank lines
+        chunks = re.split(r'\n(?=\s*(?:def|class|async def|\/\*|\#\#)\s+)', source)
+        for i, chunk in enumerate(chunks):
+            chunk = chunk.strip()
+            if not chunk: continue
+            signature = chunk.split('\n')[0][:100]
+            nodes.append(CodeNode(
+                id=f"regex_chunk_{i}",
+                name=f"chunk_{i}",
+                kind="text",
+                signature=signature,
+                docstring="",
+                body=chunk,
+                token_estimate=len(chunk.split())
+            ))
+        return nodes
 
     nodes: list[CodeNode] = []
 

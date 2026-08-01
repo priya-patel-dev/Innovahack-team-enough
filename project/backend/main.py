@@ -28,6 +28,8 @@ class CompressRequest(BaseModel):
     query: str
     context: str
     target_tokens: int | None = None  # None = let budget_allocator decide
+    cost_pressure: float = 0.5
+    latency_pressure: float = 0.5
 
 
 class CompressResponse(BaseModel):
@@ -55,7 +57,7 @@ def compress(req: CompressRequest) -> CompressResponse:
     ranked_nodes = rank_by_relevance(req.query, new_or_changed)
 
     # 5. Budget allocator - decide how many nodes/tokens survive
-    budget = req.target_tokens or allocate_budget()
+    budget = req.target_tokens or allocate_budget(req.cost_pressure, req.latency_pressure)
     selected_nodes = []
     running_tokens = 0
     for node in ranked_nodes:
