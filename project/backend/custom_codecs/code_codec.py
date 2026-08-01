@@ -55,25 +55,53 @@ def build_code_graph(source: str) -> list[CodeNode]:
 
     nodes: list[CodeNode] = []
 
+    # Build parent mapping to identify class methods
+    parent_map = {}
+    for p in ast.walk(tree):
+        for child in ast.iter_child_nodes(p):
+            parent_map[child] = p
+
     for i, node in enumerate(ast.walk(tree)):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
             docstring = ast.get_docstring(node) or ""
             body = ast.unparse(node)
             calls = [
                 n.func.id for n in ast.walk(node)
                 if isinstance(n, ast.Call) and isinstance(n.func, ast.Name)
             ]
+            
+            parent = parent_map.get(node)
+            prefix = ""
+            if parent and isinstance(parent, ast.ClassDef):
+                prefix = f"{parent.name}."
+                
             signature = body.split("\n")[0]
-
             nodes.append(CodeNode(
-                id=f"{node.__class__.__name__}_{i}_{node.name}",
-                name=node.name,
-                kind="function" if not isinstance(node, ast.ClassDef) else "class",
+                id=f"{node.__class__.__name__}_{i}_{prefix}{node.name}",
+                name=f"{prefix}{node.name}",
+                kind="function",
                 signature=signature,
                 docstring=docstring,
                 body=body,
                 calls=calls,
                 token_estimate=len(body.split()),
+            ))
+        elif isinstance(node, ast.ClassDef):
+            docstring = ast.get_docstring(node) or ""
+            class_body = f"class {node.name}:\n"
+            if docstring:
+                class_body += f'    """{docstring}"""\n'
+            class_body += "    pass"
+            
+            nodes.append(CodeNode(
+                id=f"ClassDef_{i}_{node.name}",
+                name=node.name,
+                kind="class",
+                signature=f"class {node.name}:",
+                docstring=docstring,
+                body=class_body,
+                calls=[],
+                token_estimate=len(class_body.split()),
             ))
 
     return nodes

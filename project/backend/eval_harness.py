@@ -229,8 +229,8 @@ if __name__ == "__main__":
     query = "how does user metric scoring work?"
     ranked = rank_by_relevance(query, nodes)
     
-    # Allocate budget (simulate a cost pressure that fits about half the code)
-    budget = 180
+    # Allocate budget (simulate a cost pressure that fits about 60% of the code)
+    budget = 250
     selected_nodes = []
     running_tokens = 0
     
