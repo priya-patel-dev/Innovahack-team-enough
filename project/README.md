@@ -3,10 +3,20 @@
 InnovaHack Chapter-1 · Team Enough · Problem Statement 2
 
 See `PLANNING.md` for the full architecture and rationale. This README is
-the hour-by-hour execution + commit plan for the remaining ~17 hours.
+the hour-by-hour execution + commit plan for the remaining hours.
 
 Each row = one commit, tagged with an `## Hour N Commit Verification` entry
 appended to `PLANNING.md` (matches the pattern already started there).
+
+## Team
+
+We are team **enough**:
+- **Priya Patel** — Team Lead & Backend (pipeline architecture, structural layer)
+- **Shweta Sharma** — Backend & Git Integrator (diff engine, eval harness, repo/commits)
+- **Archi Chovatiya** — Frontend Developer & UI Designer (dashboard, live metrics view)
+- **Vaidehi Mangrolia** — QA Engineer & System Tester (eval harness verification, demo hardening)
+
+*(Roles carried over from planning — adjust above if anyone's actual focus shifted after the pivot to Problem Statement 2.)*
 
 ## Hour-by-hour plan
 
