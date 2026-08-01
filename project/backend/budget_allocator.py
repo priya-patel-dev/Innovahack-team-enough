@@ -6,9 +6,9 @@ real system this would react to live cost/latency signals; for the
 hackathon demo, expose it as a slider in the dashboard so judges can
 see compression react live ("cost-aware adaptive compression").
 """
-DEFAULT_BUDGET = 2000
-MIN_BUDGET = 300
-MAX_BUDGET = 8000
+DEFAULT_BUDGET = 3000
+MIN_BUDGET = 500
+MAX_BUDGET = 9000
 
 
 def allocate_budget(cost_pressure: float = 0.5, latency_pressure: float = 0.5) -> int:
@@ -18,6 +18,7 @@ def allocate_budget(cost_pressure: float = 0.5, latency_pressure: float = 0.5) -
     are wired to a UI slider; in a real deployment they'd come from
     live API cost tracking / p99 latency monitoring.
     """
-    pressure = max(cost_pressure, latency_pressure)
+    # Dampen the pressure slightly to be more generous and improve retention
+    pressure = max(cost_pressure, latency_pressure) * 0.85
     budget = MAX_BUDGET - pressure * (MAX_BUDGET - MIN_BUDGET)
     return int(max(MIN_BUDGET, min(MAX_BUDGET, budget)))

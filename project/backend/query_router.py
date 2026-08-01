@@ -57,8 +57,8 @@ def rank_by_relevance(query: str, nodes: list) -> list:
             doc_count = content["doc_tokens"].count(q_token)
             body_count = content["body_tokens"].count(q_token)
             
-            # Weighted TF
-            tf = (name_count * 5.0) + (sig_count * 3.0) + (doc_count * 2.0) + (body_count * 1.0)
+            # Weighted TF (increased name boost to 8.0 and sig to 4.0)
+            tf = (name_count * 8.0) + (sig_count * 4.0) + (doc_count * 2.0) + (body_count * 1.0)
             
             if tf > 0:
                 # Document Frequency (DF) across the document corpus
