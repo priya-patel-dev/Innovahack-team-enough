@@ -67,7 +67,20 @@ def compress(req: CompressRequest) -> CompressResponse:
     # 0. Input validation
     if not req.context or not req.context.strip():
         return CompressResponse(
-            compressed_prompt="Error: Empty context provided.",
+            compressed_prompt="Error: Context cannot be empty. Please load the sample or paste code/logs.",
+            original_tokens=0,
+            compressed_tokens=0,
+            compression_ratio=0.0,
+            cost_savings_pct=0.0,
+            latency_speedup_pct=0.0,
+            reasoning_retention_score=1.0,
+            selected_nodes=[],
+            dropped_nodes=[],
+        )
+    
+    if not req.query or not req.query.strip():
+        return CompressResponse(
+            compressed_prompt="Error: Query cannot be empty. Please enter what you want to search.",
             original_tokens=0,
             compressed_tokens=0,
             compression_ratio=0.0,
