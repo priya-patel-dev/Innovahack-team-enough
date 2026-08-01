@@ -6,41 +6,55 @@
 
 ---
 
-## Hour 1: Problem Statement Evaluation
+## Hour 2: Problem Statement Selection & Brainstorming
 
-We are evaluating two potential problem statements for the hackathon. Below is the brainstorming and analysis of both paths.
-
-### Option 1: Multi-Modal Knowledge Graph Synthesis for Enterprise Compliance
-
-#### Concept:
-An intelligent compliance assistant that reads heterogeneous documents (PDF regulations, audio logs, data tables, system schematics), extracts an entity-relationship web (knowledge graph), and uses Graph RAG to answer queries with high accuracy and zero hallucinations.
-
-#### Pros & Cons:
-*   **Pros:**
-    *   **High Demo Value:** We can build a visually stunning frontend showing an interactive node-link graph visualization of the compliance connections. Judges love visual demos.
-    *   **Clear Value Proposition:** Direct enterprise applicability (risk reduction, compliance auditing).
-    *   **Generative AI Synergy:** Leverages multi-modal LLMs (like Gemini) to easily parse audio, tables, and images of schematics directly into structured JSON graphs.
-*   **Cons:**
-    *   Ingesting multiple complex formats (audio, schematics) requires a solid pipeline. We must keep the graph database lightweight (e.g., using NetworkX or Neo4j-in-memory).
+### Selected Problem Statement
+**Problem Statement 2: Ultra-Low Resource LLM Context Compression Engine**
+*   **Project Name:** `ZipPrompt` (or `SqueezePrompt`)
+*   **Core Goal:** Build an algorithmic token pre-processor that strips semantic redundancy from prompts, compressing context by 70%+ while retaining 95%+ downstream accuracy.
 
 ---
 
-### Option 2: Ultra-Low Resource LLM Context Compression Engine
+### Project Concept & Architecture: "ZipPrompt"
 
-#### Concept:
-An algorithmic token pre-processor (similar to LLMLingua) that strips semantic redundancy and boilerplate from long-context prompts, reducing prompt size by 70%+ while retaining 95%+ reasoning accuracy.
+To build a winning project, we will combine a high-performance backend algorithm with a gorgeous, interactive developer dashboard.
 
-#### Pros & Cons:
-*   **Pros:**
-    *   **Deep Technical Depth:** Strong algorithm-focused project that appeals to technical judges.
-    *   **Clear Metrics:** Very easy to benchmark and graph (Compression Ratio, Latency Speedup, Cost Reduction).
-*   **Cons:**
-    *   **Low Visual Appeal:** Hard to make a visually engaging demo. It's mostly backend middleware or a command-line utility.
-    *   **Algorithmic Complexity:** Fine-tuning or implementing semantic compression algorithms under a 30-hour limit can be high-risk and hard to debug.
+```mermaid
+graph TD
+    A[User Raw Prompt + Query] --> B[ZipPrompt Engine]
+    B --> C[Stage 1: Syntax & Code Optimizer]
+    C --> D[Stage 2: Semantic Relevance Filter BM25/Embeddings]
+    D --> E[Stage 3: Token Entropy Pruner]
+    E --> F[Compressed Prompt]
+    F --> G[Target LLM Gemini API]
+    G --> H[Response & Evaluation Metrics]
+```
+
+#### 1. The Compression Pipeline (Backend - Python/FastAPI)
+We will build a multi-stage pipeline to compress prompts:
+*   **Stage 1: Structural & Syntactic Cleaner**
+    *   Removes comments, docstrings, blank lines, and redundant white space (for code contexts).
+    *   Removes HTML tags, repetitive headers, and boilerplate syntax.
+*   **Stage 2: Semantic Importance Filter (BM25 / Embeddings)**
+    *   Splits the context into logical chunks (paragraphs or lines).
+    *   Scores each chunk's relevance to the user's query using TF-IDF / BM25 or lightweight embeddings.
+    *   Discards the bottom $X\%$ of low-relevance chunks.
+*   **Stage 3: Token Entropy / Perplexity Pruning**
+    *   Uses a lightweight local tokenizer to identify and strip high-probability/redundant connector words (e.g. stop words, repeated prepositions) that do not carry semantic weight.
+
+#### 2. The Developer Dashboard (Frontend - HTML/CSS/Vanilla JS or React)
+A premium dark-themed dashboard showing:
+*   **Split View:** Original Prompt vs. Compressed Prompt with visual diffs (highlighting deleted tokens in red).
+*   **Performance Metrics:**
+    *   Compression Ratio (Target: >70%)
+    *   Token Count comparison (e.g., 10k to 2.5k tokens)
+    *   API Cost Savings calculator
+    *   Inference Latency Speedup estimation
+*   **Live Evaluation Sandbox:** A panel where users can run queries on both prompts side-by-side, verify answers, and compute similarity/retention metrics.
 
 ---
 
-## Choice & Next Steps
+## Hour 2 Commit Verification
 
-*   **Selected Problem Statement:** [TBD - Currently deciding between Option 1 and Option 2]
-*   **Core Objective:** Build a functional end-to-end prototype matching the chosen statement.
+*   **Action:** Update project plan with selected problem statement details.
+*   **Selected Stack:** Python (FastAPI, NLTK/Tiktoken) for backend + HTML/CSS/JS for frontend dashboard.
