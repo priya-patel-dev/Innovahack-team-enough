@@ -48,6 +48,17 @@ cd backend && uvicorn main:app --reload
 cd frontend && streamlit run app.py
 ```
 
+## 🎨 Dynamic 3D Console Frontend
+
+A premium dynamic 3D colorful dashboard is now served directly from the FastAPI backend root path.
+Access it at:
+👉 **http://localhost:8000/**
+
+Features:
+- **3D Card Hover Perspective**: Interactive cards that tilt on mouse movement with holographic gradients.
+- **Real-Time Compiler Flow**: Visualizes token particles animating through stages sequentially when compressing context.
+- **Stage 7 Recovery Panel**: Interactive drawer to pull back dropped nodes from the in-memory cache live.
+
 ## Engineering Scope & Defensibility
 
 ZipPrompt differentiates itself by orchestrating existing models intelligently rather than attempting risky weekend model training.
