@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from pydantic import BaseModel
 
 from ingestion import detect_domain
-from codecs.code_codec import build_code_graph
-from codecs.log_codec import build_log_templates
+from custom_codecs.code_codec import build_code_graph
+from custom_codecs.log_codec import build_log_templates
 from diff_engine import SessionCache
 from query_router import rank_by_relevance
 from budget_allocator import allocate_budget

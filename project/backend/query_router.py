@@ -1,44 +1,81 @@
 """
 Stage 4: Query Router.
 
-Ranks structural nodes by relevance to the live query using a small
-local embedding model. This is what makes compression query-aware
-instead of static - the same context compresses differently depending
-on what's being asked.
+Ranks structural nodes by relevance to the live query using a fast, lightweight
+TF-IDF scoring algorithm with signature/name boosting and suffix-stripping stemming.
+Runs completely in pure Python on CPU with sub-millisecond latency.
 """
-from functools import lru_cache
+import re
+import math
 
-from sentence_transformers import SentenceTransformer
-import numpy as np
+def _stem(word: str) -> str:
+    word = word.lower()
+    # Strip common plural/tense/nominal suffixes to enable fuzzy matching
+    for suffix in ('edly', 'fully', 'ment', 'able', 'ness', 'ties', 'tional', 'tion', 'ing', 'ed', 'es', 'ly', 'er', 's'):
+        if word.endswith(suffix) and len(word) > len(suffix) + 1:
+            return word[:-len(suffix)]
+    return word
 
-
-@lru_cache(maxsize=1)
-def _get_model() -> SentenceTransformer:
-    # Loaded once and cached; MiniLM is small enough to run on CPU fast.
-    return SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
-
-
-def _node_text(node) -> str:
-    if hasattr(node, "signature"):  # CodeNode
-        return f"{node.signature}\n{node.docstring}"
-    if hasattr(node, "template"):  # LogNode
-        return node.template
-    return getattr(node, "name", str(node))
-
+def _tokenize(text: str) -> list[str]:
+    # Lowercase, extract alphanumeric words, and stem them
+    words = re.findall(r'[a-zA-Z0-9]{2,}', text.lower())
+    return [_stem(w) for w in words]
 
 def rank_by_relevance(query: str, nodes: list) -> list:
     if not nodes:
         return []
 
-    model = _get_model()
-    node_texts = [_node_text(n) for n in nodes]
+    query_tokens = _tokenize(query)
+    if not query_tokens:
+        return nodes
 
-    query_vec = model.encode([query])[0]
-    node_vecs = model.encode(node_texts)
+    node_contents = []
+    for node in nodes:
+        name = getattr(node, "name", "").lower()
+        signature = getattr(node, "signature", "").lower()
+        docstring = getattr(node, "docstring", "").lower()
+        body = getattr(node, "body", "").lower()
+        template = getattr(node, "template", "").lower()
+        
+        node_contents.append({
+            "node": node,
+            "name_tokens": _tokenize(name),
+            "sig_tokens": _tokenize(signature),
+            "doc_tokens": _tokenize(docstring),
+            "body_tokens": _tokenize(body) if body else _tokenize(template)
+        })
 
-    sims = node_vecs @ query_vec / (
-        np.linalg.norm(node_vecs, axis=1) * np.linalg.norm(query_vec) + 1e-8
-    )
+    scores = []
+    N = len(nodes)
+    
+    for content in node_contents:
+        score = 0.0
+        for q_token in query_tokens:
+            # Term Frequency in different fields
+            name_count = content["name_tokens"].count(q_token)
+            sig_count = content["sig_tokens"].count(q_token)
+            doc_count = content["doc_tokens"].count(q_token)
+            body_count = content["body_tokens"].count(q_token)
+            
+            # Weighted TF
+            tf = (name_count * 5.0) + (sig_count * 3.0) + (doc_count * 2.0) + (body_count * 1.0)
+            
+            if tf > 0:
+                # Document Frequency (DF) across the document corpus
+                df = sum(
+                    1 for c in node_contents 
+                    if q_token in c["name_tokens"] 
+                    or q_token in c["sig_tokens"] 
+                    or q_token in c["doc_tokens"] 
+                    or q_token in c["body_tokens"]
+                )
+                
+                # Smoothed IDF
+                idf = math.log((N + 1) / (df + 1)) + 1.0
+                score += tf * idf
+            
+        scores.append((score, content["node"]))
 
-    ranked = [n for _, n in sorted(zip(sims, nodes), key=lambda x: -x[0])]
+    # Sort nodes by score descending, maintaining original order for ties
+    ranked = [node for _, node in sorted(scores, key=lambda x: -x[0])]
     return ranked
