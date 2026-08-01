@@ -1,0 +1,1367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZipPrompt — Context Compression Pipeline</title>
+    <!-- Premium Fonts and Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+    <!-- Anime.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js"></script>
+    <style>
+        :root {
+            --bg-dark: #05070F;
+            --panel-bg: rgba(15, 23, 42, 0.75);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --text-primary: #F8FAFC;
+            --text-secondary: #94A3B8;
+            
+            /* Hyper-vibrant 3D Palette */
+            --neon-cyan: #00F0FF;
+            --neon-magenta: #FF007F;
+            --neon-purple: #8B5CF6;
+            --neon-green: #39FF14;
+            --neon-yellow: #FFD700;
+            --neon-orange: #FF6B00;
+            
+            --glow-cyan: rgba(0, 240, 255, 0.25);
+            --glow-magenta: rgba(255, 0, 127, 0.25);
+            --glow-purple: rgba(139, 92, 246, 0.25);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(at 10% 10%, rgba(255, 0, 127, 0.15) 0px, transparent 35%),
+                radial-gradient(at 90% 10%, rgba(139, 92, 246, 0.15) 0px, transparent 35%),
+                radial-gradient(at 50% 90%, rgba(0, 240, 255, 0.12) 0px, transparent 40%);
+            background-attachment: fixed;
+            min-height: 100vh;
+        }
+
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 22px 48px;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.05);
+            background: rgba(5, 7, 15, 0.85);
+            backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .logo-section {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .logo-icon {
+            font-size: 2.4rem;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-magenta));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            filter: drop-shadow(0 0 10px var(--glow-cyan));
+            animation: spin-slow 15s infinite linear;
+        }
+
+        @keyframes spin-slow {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .logo-text h1 {
+            font-size: 1.7rem;
+            font-weight: 900;
+            background: linear-gradient(90deg, #FFF, var(--neon-cyan), var(--neon-magenta), var(--neon-yellow));
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            animation: wave-gradient 8s infinite alternate linear;
+        }
+
+        @keyframes wave-gradient {
+            0% { background-position: 0% 50%; }
+            100% { background-position: 100% 50%; }
+        }
+
+        .logo-text span {
+            font-size: 0.78rem;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            font-weight: 700;
+            text-shadow: 0 0 8px var(--glow-cyan);
+        }
+
+        main {
+            max-width: 1750px;
+            margin: 0 auto;
+            padding: 40px 48px;
+            display: grid;
+            grid-template-columns: 380px 1fr;
+            gap: 40px;
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* 3D Holographic Border Card */
+        .glass-panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 24px;
+            padding: 30px;
+            backdrop-filter: blur(30px);
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            transform-style: preserve-3d;
+        }
+
+        .glass-panel:hover {
+            border-color: rgba(255, 0, 127, 0.25);
+            box-shadow: 
+                0 30px 60px rgba(139, 92, 246, 0.1),
+                0 0 30px rgba(0, 240, 255, 0.1),
+                0 0 0 1px rgba(255, 0, 127, 0.2);
+            transform: translateY(-5px);
+        }
+
+        .panel-glow-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-cyan), var(--neon-magenta), var(--neon-purple), var(--neon-cyan));
+            background-size: 200% 100%;
+            animation: wave-gradient 4s infinite linear;
+        }
+
+        .panel-title {
+            font-size: 1.2rem;
+            font-weight: 800;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: #FFF;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .panel-title i {
+            color: var(--neon-magenta);
+            filter: drop-shadow(0 0 6px var(--glow-magenta));
+        }
+
+        .form-group {
+            margin-bottom: 22px;
+        }
+
+        .form-label {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 10px;
+            display: block;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 14px 18px;
+            color: #FFF;
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .form-input:focus {
+            border-color: var(--neon-cyan);
+            background: rgba(255, 255, 255, 0.08);
+            box-shadow: 0 0 15px rgba(0, 240, 255, 0.25);
+        }
+
+        .slider-container {
+            margin-bottom: 28px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.88rem;
+            margin-bottom: 10px;
+        }
+
+        .slider-value {
+            color: var(--neon-cyan);
+            font-weight: 800;
+            text-shadow: 0 0 8px var(--glow-cyan);
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--neon-magenta);
+            background: rgba(255, 255, 255, 0.1);
+            height: 8px;
+            border-radius: 4px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* 3D Anaglyph Double-Shadow Button */
+        .btn {
+            background: linear-gradient(135deg, var(--neon-magenta), var(--neon-purple));
+            color: #FFF;
+            border: none;
+            border-radius: 12px;
+            padding: 16px 28px;
+            font-size: 1rem;
+            font-weight: 800;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                -4px -4px 0px var(--neon-cyan),
+                4px 4px 0px rgba(0,0,0,0.5);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .btn:hover {
+            transform: translateY(-4px) scale(1.03);
+            box-shadow: 
+                -6px -6px 0px var(--neon-cyan),
+                6px 6px 15px rgba(255, 0, 127, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 
+                -2px -2px 0px var(--neon-cyan),
+                2px 2px 5px rgba(0,0,0,0.5);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.04);
+            border: 2px solid var(--border-color);
+            color: var(--text-primary);
+            box-shadow: none;
+            margin-top: 14px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--neon-purple);
+            box-shadow: 0 5px 15px rgba(139, 92, 246, 0.2);
+        }
+
+        /* 3D Dashboard Content Area */
+        .dashboard-content {
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            perspective: 1500px;
+        }
+
+        /* 3D Holographic Card Shine */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
+        }
+
+        .metric-card {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 24px;
+            padding: 32px 24px;
+            text-align: center;
+            position: relative;
+            transform-style: preserve-3d;
+            cursor: default;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.35);
+            transition: all 0.3s ease;
+        }
+
+        /* Holographic overlay shine */
+        .metric-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0) 100%);
+            transform: translateX(-100%);
+            transition: transform 0.6s ease;
+            pointer-events: none;
+        }
+
+        .metric-card:hover::after {
+            transform: translateX(100%);
+        }
+
+        .metric-card:hover {
+            box-shadow: 0 20px 45px rgba(139, 92, 246, 0.15);
+        }
+
+        .metric-card.accent-cyan:hover { border-color: var(--neon-cyan); box-shadow: 0 15px 40px rgba(0, 240, 255, 0.2); }
+        .metric-card.accent-purple:hover { border-color: var(--neon-purple); box-shadow: 0 15px 40px rgba(139, 92, 246, 0.25); }
+        .metric-card.accent-pink:hover { border-color: var(--neon-magenta); box-shadow: 0 15px 40px rgba(255, 0, 127, 0.2); }
+        .metric-card.accent-green:hover { border-color: var(--neon-green); box-shadow: 0 15px 40px rgba(57, 255, 20, 0.2); }
+
+        .metric-value {
+            font-size: 2.6rem;
+            font-weight: 900;
+            color: #FFF;
+            margin-bottom: 6px;
+            transform: translateZ(45px);
+            letter-spacing: -0.03em;
+        }
+
+        .metric-card.accent-cyan .metric-value { color: var(--neon-cyan); text-shadow: 0 0 12px var(--glow-cyan); }
+        .metric-card.accent-purple .metric-value { color: var(--neon-purple); text-shadow: 0 0 12px var(--glow-purple); }
+        .metric-card.accent-pink .metric-value { color: var(--neon-magenta); text-shadow: 0 0 12px var(--glow-magenta); }
+        .metric-card.accent-green .metric-value { color: var(--neon-green); text-shadow: 0 0 12px rgba(57, 255, 20, 0.2); }
+
+        .metric-label {
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            font-weight: 800;
+            transform: translateZ(20px);
+        }
+
+        .metric-icon {
+            font-size: 2rem;
+            margin-bottom: 12px;
+            transform: translateZ(35px);
+            display: inline-block;
+        }
+
+        .metric-card.accent-cyan .metric-icon { color: var(--neon-cyan); filter: drop-shadow(0 0 4px var(--neon-cyan)); }
+        .metric-card.accent-purple .metric-icon { color: var(--neon-purple); filter: drop-shadow(0 0 4px var(--neon-purple)); }
+        .metric-card.accent-pink .metric-icon { color: var(--neon-magenta); filter: drop-shadow(0 0 4px var(--neon-magenta)); }
+        .metric-card.accent-green .metric-icon { color: var(--neon-green); filter: drop-shadow(0 0 4px var(--neon-green)); }
+
+        /* 3D Marble Nodes visualizer */
+        .pipeline-visualizer {
+            background: var(--panel-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 24px;
+            padding: 30px;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            overflow: hidden;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.35);
+        }
+
+        .pipeline-nodes-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            padding: 10px 0;
+            z-index: 5;
+        }
+
+        .pipeline-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+            width: 120px;
+            text-align: center;
+            position: relative;
+        }
+
+        .node-circle {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15) 0%, rgba(13, 17, 33, 0.95) 75%);
+            border: 2px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 1.4rem;
+            color: var(--text-secondary);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 15px rgba(0,0,0,0.6);
+            transform-style: preserve-3d;
+        }
+
+        .pipeline-node:hover .node-circle {
+            transform: scale(1.1) rotateX(10deg);
+            border-color: var(--neon-purple);
+        }
+
+        .pipeline-node.active .node-circle {
+            border-color: var(--neon-cyan);
+            color: var(--neon-cyan);
+            box-shadow: 
+                0 0 20px var(--glow-cyan),
+                inset 0 0 10px var(--glow-cyan);
+            background: radial-gradient(circle at 30% 30%, rgba(0, 240, 255, 0.35) 0%, rgba(13, 17, 33, 0.95) 70%);
+            transform: scale(1.15);
+        }
+
+        .node-name {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            transition: color 0.3s ease;
+        }
+
+        .pipeline-node.active .node-name {
+            color: #FFF;
+            text-shadow: 0 0 6px var(--glow-cyan);
+        }
+
+        .svg-connector-container {
+            position: absolute;
+            top: 31px;
+            left: 50px;
+            width: calc(100% - 100px);
+            height: 10px;
+            z-index: 1;
+            pointer-events: none;
+        }
+
+        .connector-path {
+            fill: none;
+            stroke: rgba(255, 255, 255, 0.06);
+            stroke-width: 4;
+            stroke-dasharray: 8 6;
+        }
+
+        .glowing-dot {
+            fill: var(--neon-magenta);
+            filter: drop-shadow(0 0 6px var(--neon-magenta));
+            opacity: 0;
+        }
+
+        .glowing-dot-cyan {
+            fill: var(--neon-cyan);
+            filter: drop-shadow(0 0 6px var(--neon-cyan));
+            opacity: 0;
+        }
+
+        /* Playground Panel Grid */
+        .playground-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        .editor-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            height: 100%;
+        }
+
+        .editor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .editor-title {
+            font-size: 1rem;
+            font-weight: 800;
+            color: #FFF;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .editor-title i {
+            color: var(--neon-purple);
+        }
+
+        .token-badge {
+            font-size: 0.8rem;
+            font-weight: 800;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 6px 14px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color);
+            color: var(--neon-cyan);
+            text-shadow: 0 0 6px var(--glow-cyan);
+        }
+
+        textarea {
+            width: 100%;
+            height: 380px;
+            background: rgba(5, 7, 15, 0.85);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            color: #34D399;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            resize: none;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        textarea:focus {
+            border-color: var(--neon-purple);
+            box-shadow: 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+
+        .code-output {
+            width: 100%;
+            height: 380px;
+            background: rgba(5, 7, 15, 0.85);
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            padding: 20px;
+            color: var(--text-primary);
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.5);
+        }
+
+        /* Selected / Dropped Allocation Nodes */
+        .allocation-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-top: 10px;
+        }
+
+        .allocation-box {
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px solid var(--border-color);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.3);
+        }
+
+        .allocation-header {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #FFF;
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .node-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .node-badge {
+            padding: 10px 18px;
+            border-radius: 9999px;
+            font-size: 0.85rem;
+            font-weight: 800;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            opacity: 0;
+            transform: scale(0.8);
+            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.35);
+            border-width: 2px;
+            border-style: solid;
+        }
+
+        .badge-selected {
+            background: rgba(6, 78, 59, 0.6);
+            color: var(--neon-green);
+            border-color: rgba(57, 255, 20, 0.4);
+            text-shadow: 0 0 8px rgba(57, 255, 20, 0.3);
+        }
+
+        .badge-dropped {
+            background: rgba(127, 29, 29, 0.6);
+            color: var(--neon-pink);
+            border-color: rgba(255, 0, 127, 0.4);
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.3);
+        }
+
+        /* Recovery panel */
+        .recovery-box {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+        }
+
+        .recovered-output {
+            margin-top: 20px;
+            padding: 24px;
+            background: rgba(5, 7, 15, 0.85);
+            border: 2px solid var(--neon-cyan);
+            border-radius: 16px;
+            display: none;
+            box-shadow: 
+                0 15px 35px rgba(0, 240, 255, 0.1),
+                inset 0 0 15px rgba(0, 240, 255, 0.05);
+        }
+
+        .recovered-output pre {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.88rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            color: var(--neon-green);
+            line-height: 1.6;
+        }
+
+        .loader-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(5, 7, 15, 0.92);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 50;
+            border-radius: 24px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            backdrop-filter: blur(15px);
+        }
+
+        .loader-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 70px;
+            height: 70px;
+            border: 4px solid rgba(255, 0, 127, 0.1);
+            border-top-color: var(--neon-magenta);
+            border-radius: 50%;
+            animation: spin 1s infinite linear;
+            box-shadow: 0 0 25px var(--glow-magenta);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Canvas Particle Background with 3D floating wireframe cubes -->
+    <canvas id="bg-canvas"></canvas>
+
+    <header>
+        <div class="logo-section">
+            <i class="bx bx-cube logo-icon"></i>
+            <div class="logo-text">
+                <h1>ZipPrompt</h1>
+                <span>Context Compression Pipeline</span>
+            </div>
+        </div>
+        <div style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 700; display: flex; align-items: center; gap: 8px;">
+            <i class="bx bx-bolt-circle" style="color: var(--neon-magenta); font-size: 1.3rem; animation: pulse 1.5s infinite;"></i>
+            InnovaHack Chapter-1 · Team Enough
+        </div>
+    </header>
+
+    <main>
+        <!-- Configuration Sidebar -->
+        <div class="sidebar">
+            <div class="glass-panel">
+                <div class="panel-glow-line"></div>
+                <div class="panel-title"><i class="bx bx-customize"></i> Core Parameters</div>
+                
+                <div class="form-group">
+                    <label class="form-label">Active Session ID</label>
+                    <input type="text" id="session-id" class="form-input" value="demo-session-1">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="form-label">Cost pressure</span>
+                        <span class="slider-value" id="cost-val">0.50</span>
+                    </div>
+                    <input type="range" id="cost-slider" min="0" max="1" step="0.05" value="0.50">
+                </div>
+
+                <div class="slider-container">
+                    <div class="slider-header">
+                        <span class="form-label">Latency pressure</span>
+                        <span class="slider-value" id="latency-val">0.40</span>
+                    </div>
+                    <input type="range" id="latency-slider" min="0" max="1" step="0.05" value="0.40">
+                </div>
+
+                <button class="btn" id="btn-compress" style="width: 100%;">
+                    <i class="bx bx-chip"></i> Compress Context
+                </button>
+
+                <button class="btn btn-secondary" id="btn-load-sample" style="width: 100%;">
+                    <i class="bx bx-terminal"></i> Load messy_sample.py
+                </button>
+            </div>
+
+            <div class="glass-panel">
+                <div class="panel-glow-line"></div>
+                <div class="panel-title"><i class="bx bx-shield-quarter"></i> Engine Status</div>
+                <div style="font-size: 0.85rem; line-height: 1.8; color: var(--text-secondary);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Decoders:</span>
+                        <span style="color: #FFF; font-weight: 700;">AST Codec</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Router Mode:</span>
+                        <span style="color: #FFF; font-weight: 700;">TF-IDF + Stemming</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span>Caching:</span>
+                        <span style="color: #FFF; font-weight: 700;">Active Cache</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span>Pipeline:</span>
+                        <span style="color: var(--neon-cyan); font-weight: 700; text-shadow: 0 0 6px var(--glow-cyan);">Ultra-Low CPU</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- 3D Holographic Metric Cards -->
+            <div class="metrics-grid">
+                <div class="metric-card accent-cyan" id="card-ratio">
+                    <div class="metric-icon"><i class="bx bx-doughnut-chart"></i></div>
+                    <div class="metric-value" id="val-ratio">0.0%</div>
+                    <div class="metric-label">Token reduction</div>
+                </div>
+                <div class="metric-card accent-purple" id="card-cost">
+                    <div class="metric-icon"><i class="bx bx-coin-stack"></i></div>
+                    <div class="metric-value" id="val-cost">0.0%</div>
+                    <div class="metric-label">Cost reduction</div>
+                </div>
+                <div class="metric-card accent-pink" id="card-speedup">
+                    <div class="metric-icon"><i class="bx bx-bolt"></i></div>
+                    <div class="metric-value" id="val-speedup">+0.0%</div>
+                    <div class="metric-label">Latency speedup</div>
+                </div>
+                <div class="metric-card accent-green" id="card-retention">
+                    <div class="metric-icon"><i class="bx bx-check-shield"></i></div>
+                    <div class="metric-value" id="val-retention">100.0%</div>
+                    <div class="metric-label">Reasoning retention</div>
+                </div>
+            </div>
+
+            <!-- Pipeline connector visualizer -->
+            <div class="pipeline-visualizer">
+                <div class="panel-glow-line"></div>
+                <div class="panel-title" style="margin-bottom: 10px;"><i class="bx bx-network-chart"></i> Real-time Context Compilation Flow</div>
+                
+                <div class="pipeline-nodes-row">
+                    <div class="pipeline-node" id="node-ingest">
+                        <div class="node-circle"><i class="bx bx-log-in-circle"></i></div>
+                        <div class="node-name">Ingest</div>
+                    </div>
+                    <div class="pipeline-node" id="node-codec">
+                        <div class="node-circle"><i class="bx bx-code-curly"></i></div>
+                        <div class="node-name">AST Codec</div>
+                    </div>
+                    <div class="pipeline-node" id="node-diff">
+                        <div class="node-circle"><i class="bx bx-git-commit"></i></div>
+                        <div class="node-name">Diff Engine</div>
+                    </div>
+                    <div class="pipeline-node" id="node-router">
+                        <div class="node-circle"><i class="bx bx-shuffle"></i></div>
+                        <div class="node-name">Router</div>
+                    </div>
+                    <div class="pipeline-node" id="node-budget">
+                        <div class="node-circle"><i class="bx bx-hourglass-top"></i></div>
+                        <div class="node-name">Budget</div>
+                    </div>
+                    <div class="pipeline-node" id="node-pruner">
+                        <div class="node-circle"><i class="bx bx-cut"></i></div>
+                        <div class="node-name">Pruning</div>
+                    </div>
+                    <div class="pipeline-node" id="node-recovery">
+                        <div class="node-circle"><i class="bx bx-cabinet"></i></div>
+                        <div class="node-name">Recovery</div>
+                    </div>
+                </div>
+
+                <!-- SVG path particles animation -->
+                <div class="svg-connector-container">
+                    <svg width="100%" height="10" style="overflow: visible;">
+                        <path id="flow-path" d="M 0,5 H 1200" class="connector-path"></path>
+                        <circle class="glowing-dot" cx="0" cy="5" r="4"></circle>
+                        <circle class="glowing-dot-cyan" cx="0" cy="5" r="4"></circle>
+                        <circle class="glowing-dot" cx="0" cy="5" r="4"></circle>
+                    </svg>
+                </div>
+            </div>
+
+            <!-- AST Node badge details -->
+            <div class="glass-panel" id="panel-allocation" style="display: none;">
+                <div class="panel-glow-line"></div>
+                <div class="panel-title" style="margin-bottom: 10px;"><i class="bx bx-grid-alt"></i> AST Node Allocation</div>
+                <div class="allocation-container">
+                    <div class="allocation-box">
+                        <div class="allocation-header"><i class="bx bx-circle" style="color: var(--neon-green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.4);"></i> Selected Nodes (Sent to Target LLM)</div>
+                        <div class="node-list" id="selected-node-list"></div>
+                    </div>
+                    <div class="allocation-box">
+                        <div class="allocation-header"><i class="bx bx-info-circle" style="color: var(--neon-magenta); text-shadow: 0 0 6px rgba(255, 0, 127, 0.4);"></i> Dropped Nodes (Cached in Recovery Index)</div>
+                        <div class="node-list" id="dropped-node-list"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Context Input and Compressed Output Playground -->
+            <div class="playground-grid">
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <div class="editor-title"><i class="bx bx-code-block"></i> Code Context Input</div>
+                        <div class="token-badge" id="lbl-orig-tokens">0 tokens</div>
+                    </div>
+                    <textarea id="txt-context" placeholder="Paste python repository file contents here..."></textarea>
+                    
+                    <div class="editor-header" style="margin-top: 15px;">
+                        <div class="editor-title"><i class="bx bx-message-square-detail"></i> Search query</div>
+                    </div>
+                    <input type="text" id="txt-query" class="form-input" placeholder="What are you asking about this context? (e.g. how does user metric scoring work?)">
+                </div>
+
+                <div class="editor-container">
+                    <div class="editor-header">
+                        <div class="editor-title"><i class="bx bx-collapse"></i> Compressed Prompt Output</div>
+                        <div class="token-badge" id="lbl-comp-tokens">0 tokens</div>
+                    </div>
+                    <div class="code-output" id="lbl-compressed-prompt">Resulting compressed prompt will compile here...</div>
+                </div>
+            </div>
+
+            <!-- Stage 7 Recovery Store terminal -->
+            <div class="glass-panel">
+                <div class="panel-glow-line"></div>
+                <div class="panel-title"><i class="bx bx-history"></i> Stage 7 Recovery Store Lookup</div>
+                <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 16px;">
+                    Simulates target LLM signaling missing context. Search the keyword index to pull dropped AST nodes back live.
+                </div>
+                <div class="recovery-box">
+                    <input type="text" id="txt-recovery-query" class="form-input" placeholder="Enter missing entity keyword (e.g. constructor or EnterpriseUserManagerProxyFactory)...">
+                    <button class="btn" id="btn-recover" style="background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple)); box-shadow: 0 4px 12px var(--glow-cyan);"><i class="bx bx-search-alt"></i> Pull Node</button>
+                </div>
+                <div class="recovered-output" id="rec-output">
+                    <div id="rec-metadata" style="font-weight: 800; margin-bottom: 10px; color: var(--neon-cyan); font-size: 0.95rem;"></div>
+                    <pre id="rec-body"></pre>
+                </div>
+            </div>
+            
+            <!-- Loading overlay spinner -->
+            <div class="loader-overlay" id="loading-overlay">
+                <div class="spinner"></div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Pre-loaded sample python code
+        const SAMPLE_CODE_VAL = `class EnterpriseUserManagerProxyFactory:
+    """
+    Very long class docstring that doesn't actually add any real semantic
+    value but takes up dozens of tokens in a prompt window. We want the
+    ZipPrompt compressor to rip this out or squish it heavily.
+    """
+
+    def __init__(self):
+        # Initialize variables
+        self.user_data_cache = {}
+        self.is_active = False
+        self.last_login_timestamp = None
+
+    def set_user_data_cache(self, cache):
+        """ Setter for user_data_cache """
+        self.user_data_cache = cache
+        return True
+
+    def get_user_data_cache(self):
+        """ Getter for user_data_cache """
+        return self.user_data_cache
+
+    def set_is_active(self, active_state):
+        """ Setter for is_active """
+        self.is_active = active_state
+        return True
+
+    def get_is_active(self):
+        """ Getter for is_active """
+        return self.is_active
+
+    def calculate_complex_user_metrics(self, user_id):
+        """
+        Calculates complex metrics.
+        This is the actual important function that answers queries about user metrics.
+        """
+        # Step 1: Check if active
+        if not self.get_is_active():
+            return None
+        
+        # Step 2: Extract from cache
+        if user_id in self.user_data_cache:
+            base_score = self.user_data_cache[user_id].get("score", 0)
+            
+            # Step 3: Some arbitrary logic
+            multiplier = 1.5 if base_score > 100 else 1.0
+            
+            return {
+                "user_id": user_id,
+                "final_score": base_score * multiplier,
+                "status": "PROCESSED"
+            }
+        
+        return None`;
+
+        // Canvas Particle Background with 3D Wireframe Spinning Cubes
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+        let cubes = [];
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 2 + 0.5;
+                this.speedX = Math.random() * 0.3 - 0.15;
+                this.speedY = Math.random() * 0.3 - 0.15;
+                this.alpha = Math.random() * 0.4 + 0.1;
+                this.color = Math.random() > 0.5 ? '0, 240, 255' : '255, 0, 127';
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                if (this.x > canvas.width) this.x = 0;
+                else if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                else if (this.y < 0) this.y = canvas.height;
+            }
+            draw() {
+                ctx.fillStyle = `rgba(${this.color}, ${this.alpha})`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 3D Spinning Cube Model
+        class Cube3D {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.z = Math.random() * 400 + 100;
+                this.size = Math.random() * 30 + 15;
+                this.rotX = Math.random() * Math.PI;
+                this.rotY = Math.random() * Math.PI;
+                this.rotZ = Math.random() * Math.PI;
+                this.speedRotX = Math.random() * 0.01 - 0.005;
+                this.speedRotY = Math.random() * 0.01 - 0.005;
+                this.speedRotZ = Math.random() * 0.01 - 0.005;
+                this.speedX = Math.random() * 0.2 - 0.1;
+                this.speedY = Math.random() * 0.2 - 0.1;
+                this.color = Math.random() > 0.5 ? 'rgba(0, 240, 255, 0.08)' : 'rgba(255, 0, 127, 0.08)';
+                this.lineColor = Math.random() > 0.5 ? 'rgba(0, 240, 255, 0.2)' : 'rgba(139, 92, 246, 0.2)';
+            }
+            update() {
+                this.x += this.speedX;
+                this.y += this.speedY;
+                this.rotX += this.speedRotX;
+                this.rotY += this.speedRotY;
+                this.rotZ += this.speedRotZ;
+
+                if (this.x > canvas.width) this.x = 0;
+                else if (this.x < 0) this.x = canvas.width;
+                if (this.y > canvas.height) this.y = 0;
+                else if (this.y < 0) this.y = canvas.height;
+            }
+            draw() {
+                // Projection parameters
+                const fov = 400;
+                const vertices = [
+                    [-1, -1, -1], [1, -1, -1], [1, 1, -1], [-1, 1, -1],
+                    [-1, -1, 1],  [1, -1, 1],  [1, 1, 1],  [-1, 1, 1]
+                ];
+
+                const projected = [];
+                for (let v of vertices) {
+                    // Scale vertex
+                    let x = v[0] * this.size;
+                    let y = v[1] * this.size;
+                    let z = v[2] * this.size;
+
+                    // Rotate X
+                    let y1 = y * Math.cos(this.rotX) - z * Math.sin(this.rotX);
+                    let z1 = y * Math.sin(this.rotX) + z * Math.cos(this.rotX);
+
+                    // Rotate Y
+                    let x2 = x * Math.cos(this.rotY) + z1 * Math.sin(this.rotY);
+                    let z2 = -x * Math.sin(this.rotY) + z1 * Math.cos(this.rotY);
+
+                    // Rotate Z
+                    let x3 = x2 * Math.cos(this.rotZ) - y1 * Math.sin(this.rotZ);
+                    let y3 = x2 * Math.sin(this.rotZ) + y1 * Math.cos(this.rotZ);
+
+                    // Project
+                    const scale = fov / (fov + z2 + this.z);
+                    const px = x3 * scale + this.x;
+                    const py = y3 * scale + this.y;
+                    projected.push([px, py]);
+                }
+
+                ctx.strokeStyle = this.lineColor;
+                ctx.lineWidth = 1;
+
+                // Draw wireframe edges
+                const edges = [
+                    [0, 1], [1, 2], [2, 3], [3, 0], // front face
+                    [4, 5], [5, 6], [6, 7], [7, 4], // back face
+                    [0, 4], [1, 5], [2, 6], [3, 7]  // connectors
+                ];
+
+                for (let e of edges) {
+                    ctx.beginPath();
+                    ctx.moveTo(projected[e[0]][0], projected[e[0]][1]);
+                    ctx.lineTo(projected[e[1]][0], projected[e[1]][1]);
+                    ctx.stroke();
+                }
+            }
+        }
+
+        // Populate particles and cubes
+        for (let i = 0; i < 70; i++) particles.push(new Particle());
+        for (let i = 0; i < 6; i++) cubes.push(new Cube3D());
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            cubes.forEach(c => { c.update(); c.draw(); });
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // 3D holographic tilt card mouse shine logic
+        cards.forEach(card => {
+            card.addEventListener('mousemove', (e) => {
+                const rect = card.getBoundingClientRect();
+                const x = e.clientX - rect.left - (rect.width/2);
+                const y = e.clientY - rect.top - (rect.height/2);
+                
+                // Tilt rotation angles
+                card.style.transform = `rotateY(${x / 7}deg) rotateX(${-y / 7}deg) translateY(-2px)`;
+
+                // Update shin position dynamically
+                const px = ((e.clientX - rect.left) / rect.width) * 100;
+                const py = ((e.clientY - rect.top) / rect.height) * 100;
+                card.style.background = `radial-gradient(circle at ${px}% ${py}%, rgba(255, 0, 127, 0.12) 0%, var(--panel-bg) 80%)`;
+            });
+
+            card.addEventListener('mouseleave', () => {
+                card.style.transform = 'rotateY(0deg) rotateX(0deg) translateY(0)';
+                card.style.background = 'var(--panel-bg)';
+                card.style.transition = 'transform 0.5s ease, background 0.5s ease';
+            });
+        });
+
+        // Sync inputs
+        const costSlider = document.getElementById('cost-slider');
+        const costVal = document.getElementById('cost-val');
+        costSlider.addEventListener('input', (e) => {
+            costVal.textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
+        const latencySlider = document.getElementById('latency-slider');
+        const latencyVal = document.getElementById('latency-val');
+        latencySlider.addEventListener('input', (e) => {
+            latencyVal.textContent = parseFloat(e.target.value).toFixed(2);
+        });
+
+        // Load Sample Code
+        document.getElementById('btn-load-sample').addEventListener('click', () => {
+            document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
+            document.getElementById('txt-query').value = "how does user metric scoring work?";
+            
+            anime({
+                targets: '#txt-context',
+                scale: [0.98, 1],
+                opacity: [0.7, 1],
+                duration: 500,
+                easing: 'easeOutExpo'
+            });
+        });
+
+        // Trigger path particles flow
+        function runPipelineFlow() {
+            const svgContainer = document.querySelector('.svg-connector-container');
+            const path = document.getElementById('flow-path');
+            const width = svgContainer.getBoundingClientRect().width;
+            path.setAttribute('d', `M 0,5 H ${width}`);
+
+            const nodes = ['#node-ingest', '#node-codec', '#node-diff', '#node-router', '#node-budget', '#node-pruner', '#node-recovery'];
+            
+            nodes.forEach((nodeId, idx) => {
+                setTimeout(() => {
+                    document.querySelector(nodeId).classList.add('active');
+                    anime({
+                        targets: `${nodeId} .node-circle`,
+                        scale: [1, 1.25, 1],
+                        rotate: '1turn',
+                        duration: 600,
+                        easing: 'easeOutBack'
+                    });
+                }, idx * 250);
+            });
+
+            // Flow particles sequentially
+            anime({
+                targets: '.glowing-dot',
+                translateX: [0, width],
+                opacity: {
+                    value: [0, 1, 1, 0],
+                    duration: 1750,
+                    easing: 'linear'
+                },
+                delay: anime.stagger(150),
+                duration: 1750,
+                easing: 'easeInOutSine'
+            });
+
+            anime({
+                targets: '.glowing-dot-cyan',
+                translateX: [0, width],
+                opacity: {
+                    value: [0, 1, 1, 0],
+                    duration: 1750,
+                    easing: 'linear'
+                },
+                delay: 75,
+                duration: 1750,
+                easing: 'easeInOutSine'
+            });
+        }
+
+        function resetPipelineNodes() {
+            const nodes = ['#node-ingest', '#node-codec', '#node-diff', '#node-router', '#node-budget', '#node-pruner', '#node-recovery'];
+            nodes.forEach(nodeId => {
+                document.querySelector(nodeId).classList.remove('active');
+            });
+        }
+
+        // Compress pipeline action
+        const btnCompress = document.getElementById('btn-compress');
+        const loadingOverlay = document.getElementById('loading-overlay');
+
+        btnCompress.addEventListener('click', async () => {
+            const context = document.getElementById('txt-context').value;
+            const query = document.getElementById('txt-query').value;
+            const sessionId = document.getElementById('session-id').value;
+            const costPressure = parseFloat(costSlider.value);
+            const latencyPressure = parseFloat(latencySlider.value);
+
+            if(!context || !query) {
+                alert("Please provide both Context and Query.");
+                return;
+            }
+
+            resetPipelineNodes();
+            runPipelineFlow();
+            loadingOverlay.classList.add('active');
+
+            try {
+                const response = await fetch('/compress', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: sessionId,
+                        query: query,
+                        context: context,
+                        cost_pressure: costPressure,
+                        latency_pressure: latencyPressure
+                    })
+                });
+
+                const data = await response.json();
+                loadingOverlay.classList.remove('active');
+
+                // Counters rollup update
+                animateMetricValue('val-ratio', 0, data.compression_ratio * 100, '%');
+                animateMetricValue('val-cost', 0, data.cost_savings_pct * 100, '%');
+                animateMetricValue('val-speedup', 0, data.latency_speedup_pct * 100, '%');
+                animateMetricValue('val-retention', 0, data.reasoning_retention_score * 100, '%');
+
+                document.getElementById('lbl-orig-tokens').textContent = `${data.original_tokens} tokens`;
+                document.getElementById('lbl-comp-tokens').textContent = `${data.compressed_tokens} tokens`;
+                document.getElementById('lbl-compressed-prompt').textContent = data.compressed_prompt;
+
+                const selectedList = document.getElementById('selected-node-list');
+                const droppedList = document.getElementById('dropped-node-list');
+                selectedList.innerHTML = '';
+                droppedList.innerHTML = '';
+
+                data.selected_nodes.forEach(node => {
+                    const badge = document.createElement('span');
+                    badge.className = 'node-badge badge-selected';
+                    badge.innerHTML = `<i class='bx bx-check-circle'></i> ${node}`;
+                    selectedList.appendChild(badge);
+                });
+
+                data.dropped_nodes.forEach(node => {
+                    const badge = document.createElement('span');
+                    badge.className = 'node-badge badge-dropped';
+                    badge.innerHTML = `<i class='bx bx-minus-circle'></i> ${node}`;
+                    droppedList.appendChild(badge);
+                });
+
+                document.getElementById('panel-allocation').style.display = 'block';
+
+                // Badges stagger pop-in
+                anime({
+                    targets: '.node-badge',
+                    scale: [0.7, 1],
+                    opacity: [0, 1],
+                    delay: anime.stagger(50),
+                    easing: 'easeOutBack',
+                    duration: 650
+                });
+
+            } catch (err) {
+                loadingOverlay.classList.remove('active');
+                alert("FastAPI backend error. Is the server running?");
+            }
+        });
+
+        function animateMetricValue(id, start, end, suffix) {
+            const obj = document.getElementById(id);
+            const target = { val: start };
+            anime({
+                targets: target,
+                val: end,
+                round: 10,
+                duration: 1200,
+                easing: 'easeOutExpo',
+                update: function() {
+                    obj.textContent = (target.val / 10).toFixed(1) + suffix;
+                }
+            });
+        }
+
+        // Recovery action
+        const btnRecover = document.getElementById('btn-recover');
+        btnRecover.addEventListener('click', async () => {
+            const sessionId = document.getElementById('session-id').value;
+            const keyword = document.getElementById('txt-recovery-query').value;
+
+            if(!keyword) return;
+
+            try {
+                const response = await fetch(`/recover?session_id=${sessionId}&missing_entity=${keyword}`, {
+                    method: 'POST'
+                });
+                const data = await response.json();
+
+                const outputPanel = document.getElementById('rec-output');
+                const meta = document.getElementById('rec-metadata');
+                const body = document.getElementById('rec-body');
+
+                if(data.found) {
+                    outputPanel.style.display = 'block';
+                    const nodeName = data.results.metadatas[0][0].name;
+                    const nodeBody = data.results.documents[0][0];
+
+                    meta.textContent = `RECOVERED NODE: ${nodeName}`;
+                    body.textContent = nodeBody;
+
+                    anime({
+                        targets: '#rec-output',
+                        opacity: [0, 1],
+                        translateY: [15, 0],
+                        duration: 400,
+                        easing: 'easeOutQuad'
+                    });
+                } else {
+                    outputPanel.style.display = 'none';
+                    alert("No matching nodes found in recovery store.");
+                }
+            } catch(e) {
+                alert("Error querying recovery store.");
+            }
+        });
+    </script>
+</body>
+</html>
