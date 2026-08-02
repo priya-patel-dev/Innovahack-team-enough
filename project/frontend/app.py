@@ -200,7 +200,7 @@ if st.session_state.get("compression_executed", False):
         """, unsafe_allow_html=True)
     with m4:
         results_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results.md"))
-        retention_val = "100.0%"
+        retention_val = "97.9%"
         retention_sub = "Benchmark Suite Score"
         if os.path.exists(results_path):
             with open(results_path, "r", encoding="utf-8") as f:
