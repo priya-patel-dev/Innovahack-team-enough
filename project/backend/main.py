@@ -175,6 +175,26 @@ def recover(session_id: str, missing_entity: str):
     return recovery_index.lookup(session_id, missing_entity)
 
 
+@app.get("/sample")
+def get_sample_code():
+    """Serves messy_sample.py content so the frontend always reflects the latest file."""
+    from fastapi.responses import PlainTextResponse
+    data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+    path = os.path.join(data_dir, "messy_sample.py")
+    with open(path, "r", encoding="utf-8") as f:
+        return PlainTextResponse(f.read())
+
+
+@app.get("/sample-log")
+def get_sample_log():
+    """Serves messy_sample.log content so the frontend always reflects the latest file."""
+    from fastapi.responses import PlainTextResponse
+    data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+    path = os.path.join(data_dir, "messy_sample.log")
+    with open(path, "r", encoding="utf-8") as f:
+        return PlainTextResponse(f.read())
+
+
 if __name__ == "__main__":
     import uvicorn
 

@@ -1387,32 +1387,35 @@
             latencyVal.textContent = parseFloat(e.target.value).toFixed(2);
         });
 
-        // Load Sample Code
-        document.getElementById('btn-load-sample').addEventListener('click', () => {
-            document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
-            document.getElementById('txt-query').value = "how does user metric scoring work?";
-            
-            anime({
-                targets: '#txt-context',
-                scale: [0.98, 1],
-                opacity: [0.7, 1],
-                duration: 500,
-                easing: 'easeOutExpo'
-            });
+        // Load Sample Code — fetches the latest messy_sample.py from the backend
+        document.getElementById('btn-load-sample').addEventListener('click', async () => {
+            const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            try {
+                const res = await fetch(`${apiBase}/sample`);
+                const text = await res.text();
+                document.getElementById('txt-context').value = text;
+                document.getElementById('txt-query').value = "how does user metric scoring work?";
+                anime({ targets: '#txt-context', scale: [0.98, 1], opacity: [0.7, 1], duration: 500, easing: 'easeOutExpo' });
+            } catch(e) {
+                // Fallback to hardcoded constant if API unreachable
+                document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
+                document.getElementById('txt-query').value = "how does user metric scoring work?";
+            }
         });
 
-        // Load Sample Logs
-        document.getElementById('btn-load-logs').addEventListener('click', () => {
-            document.getElementById('txt-context').value = SAMPLE_LOG_VAL;
-            document.getElementById('txt-query').value = "What is causing the database query failure?";
-            
-            anime({
-                targets: '#txt-context',
-                scale: [0.98, 1],
-                opacity: [0.7, 1],
-                duration: 500,
-                easing: 'easeOutExpo'
-            });
+        // Load Sample Logs — fetches the latest messy_sample.log from the backend
+        document.getElementById('btn-load-logs').addEventListener('click', async () => {
+            const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            try {
+                const res = await fetch(`${apiBase}/sample-log`);
+                const text = await res.text();
+                document.getElementById('txt-context').value = text;
+                document.getElementById('txt-query').value = "What is causing the database query failure?";
+                anime({ targets: '#txt-context', scale: [0.98, 1], opacity: [0.7, 1], duration: 500, easing: 'easeOutExpo' });
+            } catch(e) {
+                document.getElementById('txt-context').value = SAMPLE_LOG_VAL;
+                document.getElementById('txt-query').value = "What is causing the database query failure?";
+            }
         });
 
         // SVG path flow animation
@@ -1623,9 +1626,18 @@
             }
         });
 
-        // Set default values on startup to prevent typing live
-        document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
-        document.getElementById('txt-query').value = "how does user metric scoring work?";
+        // Preload the large demo file on startup via API (always fresh from disk)
+        (async () => {
+            const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            try {
+                const res = await fetch(`${apiBase}/sample`);
+                const text = await res.text();
+                document.getElementById('txt-context').value = text;
+            } catch(e) {
+                document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
+            }
+            document.getElementById('txt-query').value = "how does user metric scoring work?";
+        })();
     </script>
 </body>
 </html>

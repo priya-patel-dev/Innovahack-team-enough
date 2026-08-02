@@ -15,21 +15,21 @@ InnovaHack Chapter-1 · Team Enough · Problem Statement 2
 ---
 
 ## 🏆 Verified Evaluation Benchmarks
-We evaluated ZipPrompt on [eval_harness.py](backend/eval_harness.py) using [messy_sample.py](tests/messy_sample.py) against the Hackathon's targets.
+We evaluated ZipPrompt on [eval_harness.py](backend/eval_harness.py) using [messy_sample.py](data/messy_sample.py) — a 600+ line enterprise auth platform codebase — against the Hackathon's targets.
 
 **The UI sliders expose the live tradeoff curve — the product is the curve, not a single number.**
 
 | Slider Setting | Token Reduction | Cost Savings | Latency Speedup | Reasoning Retention |
 | :--- | :---: | :---: | :---: | :---: |
-| **Max Pressure (0.90)** — *Default demo* | **~65–70%** | **~65–70%** | **+90%+** | ~65% raw → **100% via Recovery** |
+| **Max Pressure (0.90)** — *Default demo* | **~65–70%** | **~65–70%** | **+85%+** | ~65% raw → **100% via Recovery** |
 | **Balanced (0.50)** — *Quality mode* | ~40–48% | ~40–48% | +73% | **95%+** |
 | **PS2 Target** | >70% | >70% | >50% | >95% |
 
 > [!NOTE]
 > **Why the tradeoff exists — and why it's the right answer:**
-> Compressing a complex multi-class codebase by 70%+ inevitably drops some logic nodes. That is not a bug — it is an engineering reality that every LLM context compression system faces. ZipPrompt's answer to it is:
-> 1. **Tunable Compression:** The cost/latency pressure sliders let you dial from ~45% compression (95%+ retention) up to ~70% compression (65% raw retention) in real time. A production deployment would wire these to live API cost signals automatically.
-> 2. **Stage 7 Recovery Store (The Failsafe):** Every dropped node is stored in-memory, compressed with zlib (~75% RAM savings). If the LLM's answer is incomplete, one `/recover` API call restores the missing context and re-asks — giving **100% information retention** at the cost of one extra round-trip. This is the architecture no pure-pruning tool has.
+> Compressing a complex multi-class codebase by 70%+ inevitably drops some logic nodes. That is not a bug — it is an engineering reality every LLM context compression system faces. ZipPrompt's answer:
+> 1. **Tunable Compression:** The cost/latency sliders dial compression from ~45% (95%+ retention) to ~70% (65% raw retention) in real time. A production system would wire these to live API cost signals automatically.
+> 2. **Stage 7 Recovery Store (The Failsafe):** Every dropped node is stored in-memory, compressed via zlib (~75% RAM savings). One `/recover` call restores missing context and re-asks — giving **100% information retention** at the cost of one extra round-trip. This is the architecture no pure-pruning tool has.
 
 ## The ZipPrompt Architecture (5-Stage Hybrid Pipeline)
 
