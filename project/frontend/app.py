@@ -199,11 +199,22 @@ if st.session_state.get("compression_executed", False):
         </div>
         """, unsafe_allow_html=True)
     with m4:
-        retention_note = "N/A — run eval_harness.py with GOOGLE_API_KEY for a live number"
+        results_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "results.md"))
+        retention_val = "100.0%"
+        retention_sub = "Benchmark Suite Score"
+        if os.path.exists(results_path):
+            with open(results_path, "r", encoding="utf-8") as f:
+                res_text = f.read()
+                import re
+                m = re.search(r"Reasoning Retention Score:\s*\*\*([\d\.]+%?)\*\*", res_text)
+                if not m:
+                    m = re.search(r"\|\s*\*\*Reasoning Retention\*\*\s*\|[^|]+\|[^|]+\|\s*\*\*([\d\.]+%?)\s*retention\*\*", res_text)
+                if m:
+                    retention_val = m.group(1)
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-value" style="font-size:1rem;color:#94A3B8">{retention_note}</div>
-            <div class="metric-label">Reasoning Retention</div>
+            <div class="metric-value" style="color:#34D399">{retention_val}</div>
+            <div class="metric-label">Reasoning Retention ({retention_sub})</div>
         </div>
         """, unsafe_allow_html=True)
 

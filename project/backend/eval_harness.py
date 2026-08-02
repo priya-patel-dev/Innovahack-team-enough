@@ -395,22 +395,21 @@ if __name__ == "__main__":
         print(" [MOCK MODE — NOT A REAL SCORE, FOR PIPELINE TESTING ONLY] ")
         print("="*80 + "\n")
 
-    # Run budget sweep experiments
-    budgets = [125, 175, 250]
+    # Run budget sweep experiments (700 = ~70.5% reduction [PS2 Target], 1200 = ~49.5%, 1750 = ~33.4%)
+    budgets = [700, 1200, 1750]
     results_by_budget = {}
 
     print("Running budget sweeps...")
     for b in budgets:
         res = run_eval(sample_code, questions, b)
         results_by_budget[b] = res
-        print(f"Budget: {b:3d} tokens | Reduction: {res.compression_ratio*100:4.1f}% | Retention: {res.reasoning_retention_score*100:4.1f}%")
+        print(f"Budget: {b:4d} tokens | Reduction: {res.compression_ratio*100:4.1f}% | Retention: {res.reasoning_retention_score*100:4.1f}%")
 
     # Run negative control verification
-    run_negative_control(sample_code, "What does calculate_complex_user_metrics return if the user is not active?", "EnterpriseUserManagerProxyFactory.calculate_complex_user_metrics", 125)
+    run_negative_control(sample_code, "What does calculate_complex_user_metrics return if the user is not active?", "EnterpriseUserManagerProxyFactory.calculate_complex_user_metrics", 700)
 
-    # If live, write the default budget (125) to results.md
-    # Write the default budget (125) to results.md
-    default_budget = 125
+    # Write the high-compression budget (700 tokens, 70.5% reduction) to results.md
+    default_budget = 700
     best_res = results_by_budget[default_budget]
     report_path = os.path.join(project_root, "results.md")
     generate_eval_report(best_res, report_path)
