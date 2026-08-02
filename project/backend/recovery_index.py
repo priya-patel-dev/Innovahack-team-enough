@@ -29,29 +29,54 @@ class RecoveryIndex:
             })
 
     def lookup(self, session_id: str, query: str, n_results: int = 1):
-        """Simple substring matching instead of vector similarity to reduce risk."""
-        if session_id not in self._store or not self._store[session_id]:
+        """Robust substring & keyword matching for Stage 7 recovery."""
+        candidates = self._store.get(session_id, [])
+        if not candidates:
+            # Fallback: search all stored sessions if target session_id has no stored nodes
+            candidates = [item for session in self._store.values() for item in session]
+            
+        if not candidates:
             return {"found": False, "results": []}
             
-        query_terms = query.lower().split()
-        # Alias/synonym expansion for robust search (e.g. constructor -> __init__)
-        expanded_terms = list(query_terms)
-        for term in query_terms:
-            if term in ("constructor", "init"):
-                expanded_terms.extend(["__init__", "init"])
-            elif term == "getters":
-                expanded_terms.extend(["get_"])
-            elif term == "setters":
-                expanded_terms.extend(["set_"])
+        query_raw = query.strip()
+        query_lower = query_raw.lower()
+        query_words = re.findall(r'[a-zA-Z0-9_]+', query_lower)
         
-        def score(doc):
+        # Split CamelCase (e.g. EnterpriseUserManagerProxyFactory -> enterprise user manager proxy factory)
+        camel_split = re.sub(r'([a-z0-9])([A-Z])', r'\1 \2', query_raw).lower().split()
+        
+        expanded_terms = set(query_words + camel_split)
+        for term in list(expanded_terms):
+            if term in ("constructor", "init"):
+                expanded_terms.update(["__init__", "init"])
+            elif term == "getters":
+                expanded_terms.update(["get_"])
+            elif term == "setters":
+                expanded_terms.update(["set_"])
+        
+        def calculate_score(doc):
             decompressed_text = zlib.decompress(doc["text"]).decode('utf-8')
-            text_lower = (doc["name"] + " " + decompressed_text).lower()
-            return sum(1 for term in expanded_terms if term in text_lower)
+            doc_name = (doc.get("name") or "").lower()
+            doc_id = (doc.get("id") or "").lower()
+            text_lower = (doc_name + " " + doc_id + " " + decompressed_text).lower()
             
-        ranked = sorted(self._store[session_id], key=score, reverse=True)
-        # Only return results that have at least some overlap
-        best = [r for r in ranked if score(r) > 0][:n_results]
+            sc = 0
+            # Huge bonus for direct exact or partial substring match in node name/id/body
+            if query_lower in doc_name or query_lower in doc_id or query_lower in text_lower:
+                sc += 100
+                
+            for term in expanded_terms:
+                if len(term) >= 2 and term in text_lower:
+                    sc += 10
+                    if term in doc_name:
+                        sc += 20
+            return sc
+            
+        scored = [(doc, calculate_score(doc)) for doc in candidates]
+        ranked = sorted(scored, key=lambda x: x[1], reverse=True)
+        
+        # Keep items with positive score
+        best = [doc for doc, sc in ranked if sc > 0][:n_results]
         
         if not best:
             return {"found": False, "results": []}

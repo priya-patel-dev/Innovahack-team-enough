@@ -154,6 +154,11 @@ def compress(req: CompressRequest) -> CompressResponse:
                 running_tokens += stub_estimate
             dropped_nodes.append(node.name)
 
+    # Ensure all non-selected graph nodes are archived in Stage 7 recovery store
+    for node in nodes:
+        if node not in selected_nodes:
+            recovery_index.store(req.session_id, node)
+
     # 6. Token pruner - fine-grained cleanup within what survived
     compressed_prompt = prune_tokens(selected_nodes, unchanged_pointers, collapsed_nodes=collapsed_nodes)
 
