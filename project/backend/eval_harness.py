@@ -5,7 +5,8 @@ Measures and compares the ORIGINAL prompt vs the COMPRESSED prompt.
 
 Supports:
 1. Live Anthropic API mode (if ANTHROPIC_API_KEY is set).
-2. Automated Mock mode (if API key is missing) to ensure a zero-setup workable demo.
+2. Live Gemini API mode (if GEMINI_API_KEY or GOOGLE_API_KEY is set).
+3. Automated Mock mode (if API keys are missing) to ensure a zero-setup workable demo.
 """
 import os
 import time
@@ -13,6 +14,10 @@ import re
 import math
 from collections import Counter
 from dataclasses import dataclass, asdict
+from dotenv import load_dotenv
+
+# Load env variables from .env if present
+load_dotenv()
 
 import tiktoken
 from custom_codecs.code_codec import build_code_graph
@@ -131,11 +136,11 @@ def _answer_similarity(a: str, b: str, question: str) -> float:
     return 0.5 * cosine_sim + 0.5 * recall
 
 def _ask_llm(prompt: str, question: str, is_compressed: bool) -> tuple[str, float]:
-    """Hits Gemini or Anthropic API if key is available, else returns mock answers."""
+    """Hits Gemini API or Anthropic API if key is available, else returns mock answers."""
+    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
-    gemini_key = os.environ.get("GEMINI_API_KEY")
     
-    if not anthropic_key and not gemini_key:
+    if not gemini_key and not anthropic_key:
         # Retrieve pre-defined mock answer
         qa = MOCK_QA_PAIRS.get(question, {
             "original": "Sample original answer.",
@@ -156,7 +161,7 @@ def _ask_llm(prompt: str, question: str, is_compressed: bool) -> tuple[str, floa
             import google.generativeai as genai
             genai.configure(api_key=gemini_key)
             model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(f"{prompt}\n\nQuestion: {question}")
+            response = model.generate_content(f"Prompt context:\n{prompt}\n\nQuestion: {question}")
             answer = response.text
         except Exception as e:
             answer = f"Gemini API Error: {str(e)}"
@@ -214,7 +219,7 @@ def run_eval(original_prompt: str, eval_questions: list[str], budget: int) -> Ev
         compressed_prompt = prune_tokens(selected_nodes, [], collapsed_nodes=collapsed_nodes)
         comp_tokens_list.append(_count_tokens(compressed_prompt))
 
-        # Query the LLM dynamically
+        # Query LLM
         oa, ol = _ask_llm(original_prompt, q, is_compressed=False)
         ca, cl = _ask_llm(compressed_prompt, q, is_compressed=True)
 
@@ -234,7 +239,7 @@ def run_eval(original_prompt: str, eval_questions: list[str], budget: int) -> Ev
     orig_lat = sum(orig_latencies) / len(orig_latencies)
     comp_lat = sum(comp_latencies) / len(comp_latencies)
 
-    is_mock = not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("GEMINI_API_KEY"))
+    is_mock = not (os.environ.get("ANTHROPIC_API_KEY") or os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY"))
 
     return EvalResult(
         compression_ratio=1.0 - (avg_comp_tokens / max(orig_tokens, 1)),
@@ -255,19 +260,20 @@ def generate_eval_report(result: EvalResult, output_path: str):
         print("[WARNING] Refusing to write evaluation report to results.md in MOCK MODE.")
         return
         
-    mode_str = f"LIVE API ({MODEL})"
+    api_type = "Gemini" if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") else "Anthropic"
+    mode_str = f"LIVE API ({api_type})"
     
     report = f"""# ZipPrompt Evaluation Results
 Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}
 Evaluation Mode: **{mode_str}**
 
 ## Core Metrics Summary
-| Metric | Original | Compressed | Improvement |
+| Metric | Original | Compressed | Net Change / Score |
 | :--- | :---: | :---: | :---: |
 | **Token Count** | {result.original_tokens} | {result.compressed_tokens} | **{result.compression_ratio * 100:.1f}% reduction** |
 | **Prompt Cost (USD)** | ${result.original_cost_usd:.6f} | ${result.compressed_cost_usd:.6f} | **{result.cost_reduction_pct * 100:.1f}% savings** |
 | **Average Latency** | {result.original_latency_s:.2f}s | {result.compressed_latency_s:.2f}s | **{result.latency_speedup_pct * 100:.1f}% speedup** |
-| **Reasoning Retention** | 100.0% | {result.reasoning_retention_score * 100:.1f}% | **{result.reasoning_retention_score * 100:.1f}% accuracy** |
+| **Reasoning Retention** | 100.0% | {result.reasoning_retention_score * 100:.1f}% | **{result.reasoning_retention_score * 100:.1f}% retention** |
 
 ## Detail Analysis
 
@@ -407,4 +413,3 @@ if __name__ == "__main__":
         best_res = results_by_budget[default_budget]
         report_path = os.path.join(project_root, "results.md")
         generate_eval_report(best_res, report_path)
-
