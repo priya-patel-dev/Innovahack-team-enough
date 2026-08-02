@@ -1368,6 +1368,9 @@
                 alert("Error querying recovery store.");
             }
         });
+        // Set default values on startup to prevent typing live
+        document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
+        document.getElementById('txt-query').value = "how does user metric scoring work?";
     </script>
 </body>
 </html>

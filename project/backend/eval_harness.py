@@ -13,6 +13,10 @@ import re
 import math
 from collections import Counter
 from dataclasses import dataclass, asdict
+from dotenv import load_dotenv
+
+# Load env variables from .env if present
+load_dotenv()
 
 import tiktoken
 from custom_codecs.code_codec import build_code_graph
@@ -108,10 +112,11 @@ def _answer_similarity(a: str, b: str) -> float:
     return float(numerator / denominator)
 
 def _ask_llm(prompt: str, question: str, is_compressed: bool) -> tuple[str, float]:
-    """Hits Anthropic API if key is available, else returns mock answers."""
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    """Hits Gemini API or Anthropic API if key is available, else returns mock answers."""
+    gemini_key = os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    anthropic_key = os.environ.get("ANTHROPIC_API_KEY")
     
-    if not api_key:
+    if not gemini_key and not anthropic_key:
         # Retrieve pre-defined mock answer
         qa = MOCK_QA_PAIRS.get(question, {
             "original": "Sample original answer.",
@@ -124,9 +129,23 @@ def _ask_llm(prompt: str, question: str, is_compressed: bool) -> tuple[str, floa
             return qa["compressed"], qa["comp_lat"]
         return qa["original"], qa["orig_lat"]
 
-    # Live API Call
+    if gemini_key:
+        import google.generativeai as genai
+        genai.configure(api_key=gemini_key)
+        model = genai.GenerativeModel("gemini-1.5-flash")
+        
+        start = time.time()
+        try:
+            resp = model.generate_content(f"Prompt context:\n{prompt}\n\nQuestion: {question}")
+            answer = resp.text
+        except Exception as e:
+            answer = f"Gemini API Error: {str(e)}"
+        elapsed = time.time() - start
+        return answer, elapsed
+
+    # Live Anthropic API Call
     from anthropic import Anthropic
-    client = Anthropic(api_key=api_key)
+    client = Anthropic(api_key=anthropic_key)
     
     start = time.time()
     resp = client.messages.create(
@@ -162,7 +181,7 @@ def run_eval(original_prompt: str, compressed_prompt: str, eval_questions: list[
     orig_lat = sum(orig_latencies) / len(orig_latencies)
     comp_lat = sum(comp_latencies) / len(comp_latencies)
 
-    is_mock = not bool(os.environ.get("ANTHROPIC_API_KEY"))
+    is_mock = not (bool(os.environ.get("ANTHROPIC_API_KEY")) or bool(os.environ.get("GEMINI_API_KEY")) or bool(os.environ.get("GOOGLE_API_KEY")))
 
     return EvalResult(
         compression_ratio=1 - (comp_tokens / max(orig_tokens, 1)),
@@ -179,19 +198,23 @@ def run_eval(original_prompt: str, compressed_prompt: str, eval_questions: list[
     )
 
 def generate_eval_report(result: EvalResult, output_path: str):
-    mode_str = "MOCK (Pre-seeded answers)" if result.is_mock else f"LIVE API ({MODEL})"
+    if result.is_mock:
+        mode_str = "MOCK (Pre-seeded answers)"
+    else:
+        api_type = "Gemini" if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") else "Anthropic"
+        mode_str = f"LIVE API ({api_type})"
     
     report = f"""# ZipPrompt Evaluation Results
 Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}
 Evaluation Mode: **{mode_str}**
 
 ## Core Metrics Summary
-| Metric | Original | Compressed | Improvement |
+| Metric | Original | Compressed | Net Change / Score |
 | :--- | :---: | :---: | :---: |
 | **Token Count** | {result.original_tokens} | {result.compressed_tokens} | **{result.compression_ratio * 100:.1f}% reduction** |
 | **Prompt Cost (USD)** | ${result.original_cost_usd:.6f} | ${result.compressed_cost_usd:.6f} | **{result.cost_reduction_pct * 100:.1f}% savings** |
 | **Average Latency** | {result.original_latency_s:.2f}s | {result.compressed_latency_s:.2f}s | **{result.latency_speedup_pct * 100:.1f}% speedup** |
-| **Reasoning Retention** | 100.0% | {result.reasoning_retention_score * 100:.1f}% | **{result.reasoning_retention_score * 100:.1f}% accuracy** |
+| **Reasoning Retention** | 100.0% | {result.reasoning_retention_score * 100:.1f}% | **{result.reasoning_retention_score * 100:.1f}% retention** |
 
 ## Detail Analysis
 
