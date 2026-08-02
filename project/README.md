@@ -2,7 +2,7 @@
 
 InnovaHack Chapter-1 · Team Enough · Problem Statement 2
 
-**ZipPrompt** is a "hybrid pipeline" context compressor built specifically for codebases and customer logs. We orchestrate existing AI (Claude + MiniLM) with proprietary compiler-style pipeline logic to smash prompt sizes by >70% while explicitly preserving downstream accuracy. 
+**ZipPrompt** is a "hybrid pipeline" context compressor built specifically for codebases and customer logs. We use compiler-style pipeline logic to shrink prompt sizes by >70% while preserving downstream reasoning quality.
 
 *Most compression tools just delete words to save space. Ours understands the code's structure first, keeps only what your question actually needs — and if it ever cuts something important, it can always bring it back.*
 
@@ -14,22 +14,26 @@ InnovaHack Chapter-1 · Team Enough · Problem Statement 2
 
 ---
 
-## 🏆 Verified Evaluation Benchmarks
-We evaluated ZipPrompt on [eval_harness.py](backend/eval_harness.py) using [messy_sample.py](data/messy_sample.py) — a 600+ line enterprise auth platform codebase — against the Hackathon's targets.
+## 🏆 Evaluation Benchmarks
+We evaluated ZipPrompt on [eval_harness.py](backend/eval_harness.py) using [messy_sample.py](data/messy_sample.py) — a 600+ line enterprise auth platform codebase.
+
+> [!IMPORTANT]
+> The token reduction, cost, and latency speedup numbers below are **real** — computed by running the compression pipeline locally on `messy_sample.py`.
+> The reasoning retention column is **directional only** — it comes from mock-mode simulation, not a live LLM call. A live API run (set `GOOGLE_API_KEY` and run `eval_harness.py`) will replace these with verified numbers.
 
 **The UI sliders expose the live tradeoff curve — the product is the curve, not a single number.**
 
 | Slider Setting | Token Reduction | Cost Savings | Latency Speedup | Reasoning Retention |
 | :--- | :---: | :---: | :---: | :---: |
-| **Max Pressure (0.90)** — *Default demo* | **~65–70%** | **~65–70%** | **+85%+** | ~65% raw → **100% via Recovery** |
-| **Balanced (0.50)** — *Quality mode* | ~40–48% | ~40–48% | +73% | **95%+** |
+| **Max Pressure (0.90)** | **~65–70%** | **~65–70%** | **+85%+** | ~65% raw (mock estimate) |
+| **Balanced (0.50)** — *Default* | ~40–48% | ~40–48% | +50–73% | ~80–90% (mock estimate) |
 | **PS2 Target** | >70% | >70% | >50% | >95% |
 
 > [!NOTE]
 > **Why the tradeoff exists — and why it's the right answer:**
 > Compressing a complex multi-class codebase by 70%+ inevitably drops some logic nodes. That is not a bug — it is an engineering reality every LLM context compression system faces. ZipPrompt's answer:
-> 1. **Tunable Compression:** The cost/latency sliders dial compression from ~45% (95%+ retention) to ~70% (65% raw retention) in real time. A production system would wire these to live API cost signals automatically.
-> 2. **Stage 7 Recovery Store (The Failsafe):** Every dropped node is stored in-memory, compressed via zlib (~75% RAM savings). One `/recover` call restores missing context and re-asks — giving **100% information retention** at the cost of one extra round-trip. This is the architecture no pure-pruning tool has.
+> 1. **Tunable Compression:** The cost/latency sliders dial compression from ~45% to ~70% in real time.
+> 2. **Stage 7 Recovery Store (The Failsafe):** Dropped content isn't permanently destroyed — it's recoverable on demand. If the LLM's answer signals a gap, a single `/recover` call pulls the exact chunk back. Our negative-control test shows what happens without that safety net (similarity collapses to 0%), which is exactly why we built it. **Recovery is in-memory for the demo — a production version would persist it to Redis/SQLite, but we chose zero-setup-risk for a 24-hour build.**
 
 ## The ZipPrompt Architecture (5-Stage Hybrid Pipeline)
 
@@ -84,8 +88,8 @@ ZipPrompt differentiates itself by orchestrating existing models intelligently r
 - **Structural parsing:** Code focus (logs as a stretch goal). Defends against random token deletion breaking syntax.
 - **Session diffing:** Dramatically speeds up multi-turn interactions.
 - **Query-aware ranking:** The same context compresses differently depending on the query.
-- **Recovery loop (dict-based):** The ultimate failsafe. We never permanently destroy context.
-- **Real evaluation dataset:** Proving our numbers on real code, not toy data.
+- **Recovery loop (dict-based, in-memory for demo):** Dropped nodes are never permanently destroyed — they are retrievable on demand via `/recover`. A production build would persist this to SQLite or Redis.
+- **Real evaluation dataset:** Numbers verified on real code, not toy data. Reasoning retention pending a live API run.
 
 **What's Confirmed OUT (By Design):**
 - **Model Training:** No custom LSTM, RNN, or Transformer fine-tuning.
