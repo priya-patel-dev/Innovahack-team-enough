@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "project/backend/main.py",
+      "use": "@vercel/python"
+    },
+    {
+      "src": "project/frontend/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/compress",
+      "dest": "project/backend/main.py"
+    },
+    {
+      "src": "/recover",
+      "dest": "project/backend/main.py"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "project/frontend/console.html"
+    }
+  ]
+}

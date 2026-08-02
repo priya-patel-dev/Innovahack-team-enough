@@ -6,6 +6,11 @@ Pipeline order (see PLANNING.md for the full diagram):
   -> budget allocator -> token pruner -> recovery index -> LLM call
 """
 import os
+import sys
+
+# Support Vercel serverless environments by adding package dir to path
+sys.path.append(os.path.dirname(__file__))
+
 from fastapi import FastAPI
 from fastapi.responses import HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
