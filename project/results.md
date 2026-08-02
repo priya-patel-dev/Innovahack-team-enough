@@ -1,6 +1,6 @@
 # ZipPrompt Evaluation Results
-Generated on: 2026-08-02 13:30:07
-Evaluation Mode: **LIVE API (Gemini)**
+Generated on: 2026-08-02 13:56:00
+Evaluation Mode: **LIVE API (Gemini gemini-2.5-flash)**
 
 ## Core Metrics Summary
 | Metric | Original | Compressed | Net Change / Score |
@@ -8,7 +8,7 @@ Evaluation Mode: **LIVE API (Gemini)**
 | **Token Count** | 4783 | 1423 | **70.2% reduction** |
 | **Prompt Cost (USD)** | $0.014349 | $0.004269 | **70.2% savings** |
 | **Average Latency** | 1.40s | 0.52s | **62.8% speedup** |
-| **Reasoning Retention** | 100.0% | 100.0% | **100.0% retention** |
+| **Reasoning Retention** | 100.0% | 97.9% | **97.9% retention (Verified Gemini 2.5 API)** |
 
 ## Detail Analysis
 
@@ -24,5 +24,20 @@ ZipPrompt parsed the codebase context into structural AST components, filtered i
 - **Net Savings per 10k requests:** $100.80
 
 ### 3. Reasoning and Downstream Quality Retention
-By preserving the signature and high-relevance blocks in full while stripping boilerplate, the LLM retains almost all functional context.
-- **Reasoning Retention Score:** **100.0%** (semantic similarity of answers)
+By preserving the signature and high-relevance blocks in full while stripping boilerplate, the LLM retains functional context.
+- **Reasoning Retention Score:** **97.9%** (semantic similarity of answers across Live Gemini 2.5 API calls)
+
+### 4. Live Model Response Verification (Raw Gemini 2.5 Flash Responses)
+
+#### Question 1: "What does calculate_complex_user_metrics return if the user is not active?"
+- **Similarity Score**: 97.87%
+- **Original Context Answer**:
+  > If the user is not active, `calculate_complex_user_metrics` returns a dictionary:
+  > ```python
+  > {"user_id": user_id, "status": "INACTIVE", "scores": None}
+  > ```
+- **Compressed Context Answer**:
+  > If the user is not active, `calculate_complex_user_metrics` returns the following dictionary:
+  > ```python
+  > {"user_id": user_id, "status": "INACTIVE", "scores": None}
+  > ```
