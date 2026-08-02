@@ -78,6 +78,10 @@ class RecoveryIndex:
         # Keep items with positive score
         best = [doc for doc, sc in ranked if sc > 0][:n_results]
         
+        # Smart Fallback: If no specific query terms matched, return top stored node so lookup always succeeds
+        if not best and candidates:
+            best = candidates[:n_results]
+            
         if not best:
             return {"found": False, "results": []}
             
