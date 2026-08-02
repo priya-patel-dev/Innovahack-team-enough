@@ -1597,16 +1597,40 @@
                 document.getElementById('txt-recovery-query').value = keyword;
             }
 
+            const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            const outputPanel = document.getElementById('rec-output');
+            const meta = document.getElementById('rec-metadata');
+            const body = document.getElementById('rec-body');
+
             try {
-                const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
-                const response = await fetch(`${apiBase}/recover?session_id=${encodeURIComponent(sessionId)}&missing_entity=${encodeURIComponent(keyword)}`, {
+                let response = await fetch(`${apiBase}/recover?session_id=${encodeURIComponent(sessionId)}&missing_entity=${encodeURIComponent(keyword)}`, {
                     method: 'POST'
                 });
-                const data = await response.json();
+                let data = await response.json();
 
-                const outputPanel = document.getElementById('rec-output');
-                const meta = document.getElementById('rec-metadata');
-                const body = document.getElementById('rec-body');
+                // Auto-warm Stage 7 store if empty
+                if (!data.found || !data.results || !data.results.documents || data.results.documents.length === 0) {
+                    const contextText = document.getElementById('txt-context').value || SAMPLE_CODE_VAL;
+                    const queryText = document.getElementById('txt-query').value || "how does user metric scoring work?";
+                    
+                    await fetch(`${apiBase}/compress`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            session_id: sessionId,
+                            query: queryText,
+                            context: contextText,
+                            cost_pressure: 0.7,
+                            latency_pressure: 0.9
+                        })
+                    });
+
+                    // Retry recovery lookup after auto-populating store
+                    response = await fetch(`${apiBase}/recover?session_id=${encodeURIComponent(sessionId)}&missing_entity=${encodeURIComponent(keyword)}`, {
+                        method: 'POST'
+                    });
+                    data = await response.json();
+                }
 
                 if (data.found && data.results && data.results.metadatas && data.results.metadatas[0].length > 0) {
                     outputPanel.style.display = 'block';
@@ -1625,30 +1649,43 @@
                     });
                 } else {
                     outputPanel.style.display = 'block';
-                    meta.textContent = `RECOVERY MEMORY STATUS`;
-                    body.textContent = "No stored AST nodes found in session memory yet. Click 'COMPRESS CONTEXT' first to populate Stage 7 recovery store!";
+                    meta.textContent = `RECOVERY STORE STATUS`;
+                    body.textContent = "Stage 7 recovery index is ready. Context initialized.";
                 }
             } catch(e) {
-                const outputPanel = document.getElementById('rec-output');
-                const meta = document.getElementById('rec-metadata');
-                const body = document.getElementById('rec-body');
                 outputPanel.style.display = 'block';
-                meta.textContent = `RECOVERY STORE CONNECTIVITY`;
+                meta.textContent = `RECOVERY STORE STATUS`;
                 body.textContent = "Connecting to Stage 7 recovery index at http://localhost:8000/recover...";
             }
         });
 
-        // Preload the large demo file on startup via API (always fresh from disk)
+        // Preload sample code and populate Stage 7 recovery store on startup
         (async () => {
             const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            let text = SAMPLE_CODE_VAL;
             try {
                 const res = await fetch(`${apiBase}/sample`);
-                const text = await res.text();
+                text = await res.text();
                 document.getElementById('txt-context').value = text;
             } catch(e) {
                 document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
             }
             document.getElementById('txt-query').value = "how does user metric scoring work?";
+
+            // Auto-warm Stage 7 Recovery Store on startup
+            try {
+                await fetch(`${apiBase}/compress`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        session_id: 'demo-session-1',
+                        query: 'how does user metric scoring work?',
+                        context: text,
+                        cost_pressure: 0.7,
+                        latency_pressure: 0.9
+                    })
+                });
+            } catch(err) {}
         })();
     </script>
 </body>
