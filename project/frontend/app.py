@@ -87,7 +87,7 @@ with st.sidebar:
     st.subheader("Adaptive Budget Allocator")
     cost_pressure = st.slider("Cost Pressure (aggression)", 0.0, 1.0, 0.5, 
                               help="Higher cost pressure shrinks the allowed token budget.")
-    latency_pressure = st.slider("Latency Pressure (aggression)", 0.0, 1.0, 0.4, 
+    latency_pressure = st.slider("Latency Pressure (aggression)", 0.0, 1.0, 0.5, 
                                 help="Higher latency pressure forces shorter contexts to speed up time-to-first-token.")
 
     if st.button("📂 Load `messy_sample.py` Example", type="secondary"):
@@ -199,10 +199,11 @@ if st.session_state.get("compression_executed", False):
         </div>
         """, unsafe_allow_html=True)
     with m4:
+        retention_note = "N/A — run eval_harness.py with GOOGLE_API_KEY for a live number"
         st.markdown(f"""
         <div class="metric-card">
-            <div class="metric-value">98.0%</div>
-            <div class="metric-label">Reasoning Retention (Benchmark)</div>
+            <div class="metric-value" style="font-size:1rem;color:#94A3B8">{retention_note}</div>
+            <div class="metric-label">Reasoning Retention</div>
         </div>
         """, unsafe_allow_html=True)
 

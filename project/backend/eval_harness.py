@@ -56,7 +56,9 @@ class EvalResult:
     latency_speedup_pct: float
     is_mock: bool
 
-# Pre-defined mock answers for when the API key is not available
+# FROZEN — do not adjust these answers to chase a "better" score.
+# These are offline fallback answers for pipeline testing only.
+# Real retention numbers must come from a live API run (set GOOGLE_API_KEY and run this script).
 MOCK_QA_PAIRS = {
     "What is the name of the factory class defined in the code?": {
         "original": "The name of the factory class defined in the code is EnterpriseUserManagerProxyFactory.",

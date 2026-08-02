@@ -897,17 +897,17 @@
                 <div class="slider-container">
                     <div class="slider-header">
                         <span class="form-label">Cost pressure <span style="font-size:0.7rem;color:var(--neon-cyan);">(↑ = more compression)</span></span>
-                        <span class="slider-value" id="cost-val">0.90</span>
+                        <span class="slider-value" id="cost-val">0.50</span>
                     </div>
-                    <input type="range" id="cost-slider" min="0" max="1" step="0.05" value="0.90">
+                    <input type="range" id="cost-slider" min="0" max="1" step="0.05" value="0.50">
                 </div>
 
                 <div class="slider-container">
                     <div class="slider-header">
                         <span class="form-label">Latency pressure <span style="font-size:0.7rem;color:var(--neon-cyan);">(↑ = more compression)</span></span>
-                        <span class="slider-value" id="latency-val">0.90</span>
+                        <span class="slider-value" id="latency-val">0.50</span>
                     </div>
-                    <input type="range" id="latency-slider" min="0" max="1" step="0.05" value="0.90">
+                    <input type="range" id="latency-slider" min="0" max="1" step="0.05" value="0.50">
                 </div>
 
                 <button class="btn" id="btn-compress" style="width: 100%;">
@@ -957,23 +957,23 @@
             <div class="metrics-grid">
                 <div class="metric-card accent-cyan" id="card-ratio">
                     <div class="metric-icon"><i class="bx bx-doughnut-chart"></i></div>
-                    <div class="metric-value" id="val-ratio">94.9%</div>
+                    <div class="metric-value" id="val-ratio">—</div>
                     <div class="metric-label">Token reduction</div>
                 </div>
                 <div class="metric-card accent-purple" id="card-cost">
                     <div class="metric-icon"><i class="bx bx-coin-stack"></i></div>
-                    <div class="metric-value" id="val-cost">94.9%</div>
+                    <div class="metric-value" id="val-cost">—</div>
                     <div class="metric-label">Cost reduction</div>
                 </div>
                 <div class="metric-card accent-pink" id="card-speedup">
                     <div class="metric-icon"><i class="bx bx-bolt"></i></div>
-                    <div class="metric-value" id="val-speedup">+73.3%</div>
+                    <div class="metric-value" id="val-speedup">—</div>
                     <div class="metric-label">Latency speedup</div>
                 </div>
                 <div class="metric-card accent-green" id="card-retention">
                     <div class="metric-icon"><i class="bx bx-check-shield"></i></div>
-                    <div class="metric-value" id="val-retention">98.0%</div>
-                    <div class="metric-label">Reasoning retention (Benchmark)</div>
+                    <div class="metric-value" id="val-retention" style="font-size:1.2rem;color:var(--text-secondary)">Pending live eval</div>
+                    <div class="metric-label">Reasoning retention</div>
                 </div>
             </div>
 
@@ -1524,6 +1524,12 @@
                 animateMetricValue('val-ratio', 0, data.compression_ratio * 100, '%');
                 animateMetricValue('val-cost', 0, data.cost_savings_pct * 100, '%');
                 animateMetricValue('val-speedup', 0, data.latency_speedup_pct * 100, '%');
+                // Retention: only update from live eval result; never hardcode
+                if (data.reasoning_retention_score !== undefined && data.reasoning_retention_score !== null) {
+                    animateMetricValue('val-retention', 0, data.reasoning_retention_score * 100, '%');
+                    document.getElementById('val-retention').style.fontSize = '';
+                    document.getElementById('val-retention').style.color = '';
+                }
 
                 document.getElementById('lbl-orig-tokens').textContent = `${data.original_tokens} tokens`;
                 document.getElementById('lbl-comp-tokens').textContent = `${data.compressed_tokens} tokens`;
