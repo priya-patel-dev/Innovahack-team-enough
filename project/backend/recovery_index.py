@@ -32,10 +32,19 @@ class RecoveryIndex:
             return {"found": False, "results": []}
             
         query_terms = query.lower().split()
+        # Alias/synonym expansion for robust search (e.g. constructor -> __init__)
+        expanded_terms = list(query_terms)
+        for term in query_terms:
+            if term in ("constructor", "init"):
+                expanded_terms.extend(["__init__", "init"])
+            elif term == "getters":
+                expanded_terms.extend(["get_"])
+            elif term == "setters":
+                expanded_terms.extend(["set_"])
         
         def score(doc):
             text_lower = (doc["name"] + " " + doc["text"]).lower()
-            return sum(1 for term in query_terms if term in text_lower)
+            return sum(1 for term in expanded_terms if term in text_lower)
             
         ranked = sorted(self._store[session_id], key=score, reverse=True)
         # Only return results that have at least some overlap
