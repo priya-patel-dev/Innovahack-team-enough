@@ -129,7 +129,8 @@ def compress(req: CompressRequest) -> CompressResponse:
     new_or_changed, unchanged_pointers = session_cache.diff(req.session_id, nodes)
 
     # 4. Query router - rank remaining nodes by relevance to the query
-    ranked_nodes, confidence = rank_by_relevance(req.query, new_or_changed)
+    ranked_nodes, _ = rank_by_relevance(req.query, new_or_changed)
+    _, confidence = rank_by_relevance(req.query, nodes)
     from query_router import CONFIDENCE_THRESHOLD
     low_confidence = confidence < CONFIDENCE_THRESHOLD
 

@@ -29,7 +29,7 @@ def test_ranking_sanity():
     # Query searching for metrics calculation logic
     query = "how does user metric scoring work?"
     
-    ranked = rank_by_relevance(query, nodes)
+    ranked, confidence = rank_by_relevance(query, nodes)
     
     print("--- Ranked Nodes ---")
     for idx, n in enumerate(ranked):

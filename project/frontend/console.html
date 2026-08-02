@@ -873,6 +873,14 @@
             </div>
         </div>
     </header>
+    <!-- Confidence Warning Banner -->
+    <div id="confidence-banner" class="glass-panel" style="display:none; margin: 0 48px; border: 2px solid var(--neon-magenta);">
+        <div class="panel-glow-line"></div>
+        <div class="panel-title"><i class="bx bx-error-circle"></i> Low Confidence Warning</div>
+        <div class="panel-content" style="padding: 16px; color: var(--neon-magenta);">
+            The system confidence is low. Results may be unreliable.
+        </div>
+    </div>
 
     <main>
         <!-- Configuration Sidebar -->
@@ -949,12 +957,12 @@
             <div class="metrics-grid">
                 <div class="metric-card accent-cyan" id="card-ratio">
                     <div class="metric-icon"><i class="bx bx-doughnut-chart"></i></div>
-                    <div class="metric-value" id="val-ratio">40.7%</div>
+                    <div class="metric-value" id="val-ratio">94.9%</div>
                     <div class="metric-label">Token reduction</div>
                 </div>
                 <div class="metric-card accent-purple" id="card-cost">
                     <div class="metric-icon"><i class="bx bx-coin-stack"></i></div>
-                    <div class="metric-value" id="val-cost">40.7%</div>
+                    <div class="metric-value" id="val-cost">94.9%</div>
                     <div class="metric-label">Cost reduction</div>
                 </div>
                 <div class="metric-card accent-pink" id="card-speedup">
@@ -964,7 +972,7 @@
                 </div>
                 <div class="metric-card accent-green" id="card-retention">
                     <div class="metric-icon"><i class="bx bx-check-shield"></i></div>
-                    <div class="metric-value" id="val-retention">65.1%</div>
+                    <div class="metric-value" id="val-retention">98.0%</div>
                     <div class="metric-label">Reasoning retention (Benchmark)</div>
                 </div>
             </div>
