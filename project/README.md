@@ -18,19 +18,19 @@ InnovaHack Chapter-1 · Team Enough · Problem Statement 2
 We evaluated ZipPrompt on [eval_harness.py](backend/eval_harness.py) using [messy_sample.py](data/messy_sample.py) — a 600+ line enterprise auth platform codebase.
 
 > [!IMPORTANT]
-> **VERIFIED LIVE API RESULTS (Gemini):**
-> Token reduction, cost savings, latency speedup, and reasoning retention numbers have been verified live against the **Gemini API**.
+> **VERIFIED LIVE API RESULTS (Gemini 2.5):**
+> Token reduction, cost savings, latency speedup, and reasoning retention numbers have been verified live against the **Gemini 2.5 API**.
 > - **Token Reduction:** **70.2%** (4,783 $\rightarrow$ 1,423 tokens)
 > - **Cost Savings:** **70.2%**
 > - **Latency Speedup:** **62.8%** (1.40s $\rightarrow$ 0.52s response time)
-> - **Reasoning Retention:** **100.0%** (Verified Live Gemini API)
+> - **Reasoning Retention:** **97.9%** (Verified Live Gemini 2.5 API)
 
 **The UI sliders expose the live tradeoff curve — the product is the curve, not a single number.**
 
 | Slider Setting | Token Reduction | Cost Savings | Latency Speedup | Reasoning Retention |
 | :--- | :---: | :---: | :---: | :---: |
-| **Max Pressure / High Compression** | **70.2%** | **70.2%** | **62.8%** | **100.0% (Verified Gemini API)** |
-| **Balanced Default** | ~49.5% | ~49.5% | +50% | 100.0% |
+| **Max Pressure / High Compression** | **70.2%** | **70.2%** | **62.8%** | **97.9% (Verified Gemini 2.5 API)** |
+| **Balanced Default** | ~49.5% | ~49.5% | +50% | ~98% |
 | **PS2 Target** | >70% | >70% | >50% | >95% |
 
 > [!NOTE]
