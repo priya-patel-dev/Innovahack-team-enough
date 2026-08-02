@@ -1,5 +1,5 @@
 # ZipPrompt Evaluation Results
-Generated on: 2026-08-02 04:03:05
+Generated on: 2026-08-02 09:36:22
 Evaluation Mode: **MOCK (Pre-seeded answers)**
 
 ## Core Metrics Summary
@@ -8,7 +8,7 @@ Evaluation Mode: **MOCK (Pre-seeded answers)**
 | **Token Count** | 425 | 252 | **40.7% reduction** |
 | **Prompt Cost (USD)** | $0.001275 | $0.000756 | **40.7% savings** |
 | **Average Latency** | 1.50s | 0.40s | **73.3% speedup** |
-| **Reasoning Retention** | 100.0% | 62.0% | **62.0% accuracy** |
+| **Reasoning Retention** | 100.0% | 65.1% | **65.1% accuracy** |
 
 ## Detail Analysis
 
@@ -25,4 +25,4 @@ ZipPrompt parsed the codebase context into structural AST components, filtered i
 
 ### 3. Reasoning and Downstream Quality Retention
 By preserving the signature and high-relevance blocks in full while stripping boilerplate, the LLM retains almost all functional context.
-- **Reasoning Retention Score:** **62.0%** (semantic similarity of answers)
+- **Reasoning Retention Score:** **65.1%** (semantic similarity of answers)

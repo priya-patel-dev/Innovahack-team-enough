@@ -8,6 +8,16 @@ Runs completely in pure Python on CPU with sub-millisecond latency.
 import re
 import math
 
+SYNONYMS = {
+    "constructor": ["__init__", "init"],
+    "initialize": ["__init__", "init"],
+    "authenticate": ["verify", "auth", "login"],
+    "validate": ["check", "verify", "assert"],
+    "metrics": ["score", "calculate", "user_metrics"],
+    "getters": ["get_"],
+    "setters": ["set_"]
+}
+
 def _stem(word: str) -> str:
     word = word.lower()
     # Strip common plural/tense/nominal suffixes to enable fuzzy matching
@@ -16,16 +26,27 @@ def _stem(word: str) -> str:
             return word[:-len(suffix)]
     return word
 
-def _tokenize(text: str) -> list[str]:
+def _tokenize(text: str, expand_synonyms: bool = False) -> list[str]:
+    # Split camelCase first
+    text = re.sub(r'([a-z])([A-Z])', r'\1 \2', text)
     # Lowercase, extract alphanumeric words, and stem them
     words = re.findall(r'[a-zA-Z0-9]{2,}', text.lower())
-    return [_stem(w) for w in words]
+    tokens = [_stem(w) for w in words]
+    
+    if expand_synonyms:
+        expanded = list(tokens)
+        for t in tokens:
+            for key, syns in SYNONYMS.items():
+                if _stem(key) == t:
+                    expanded.extend([_stem(s) for s in syns])
+        return list(set(expanded))
+    return tokens
 
 def rank_by_relevance(query: str, nodes: list) -> list:
     if not nodes:
         return []
 
-    query_tokens = _tokenize(query)
+    query_tokens = _tokenize(query, expand_synonyms=True)
     if not query_tokens:
         return nodes
 

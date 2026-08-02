@@ -86,7 +86,7 @@ def test_e2e():
         print(f" {i+1}. {n.name}")
     
     # The most relevant function should be calculate_complex_user_metrics
-    assert ranked[0].name == "calculate_complex_user_metrics"
+    assert ranked[0].name == "EnterpriseUserManagerProxyFactory.calculate_complex_user_metrics"
 
     print("\n--- Stage 5 & 6: Budgeting & Pruning ---")
     # Set a budget that fits only the top 3 nodes

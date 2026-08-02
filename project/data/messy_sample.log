@@ -1,0 +1,12 @@
+2026-08-02T08:00:01.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.150:49210 to server 10.0.0.5:5432. Session ID: 550e8400-e29b-41d4-a716-446655440000. Handle: 0x7f8d9c12
+2026-08-02T08:00:01.105Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 550e8400-e29b-41d4-a716-446655440000
+2026-08-02T08:00:02.341Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9c12. Retry count: 1
+2026-08-02T08:00:03.551Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:04.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.155:49212 to server 10.0.0.5:5432. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103. Handle: 0x7f8d9d4f
+2026-08-02T08:00:04.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103
+2026-08-02T08:00:05.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9d4f. Retry count: 2
+2026-08-02T08:00:06.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:07.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.160:49214 to server 10.0.0.5:5432. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204. Handle: 0x7f8d9e9e
+2026-08-02T08:00:07.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204
+2026-08-02T08:00:08.921Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9e9e. Retry count: 3
+2026-08-02T08:00:10.111Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...

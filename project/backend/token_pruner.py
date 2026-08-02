@@ -50,12 +50,15 @@ def _clean_log_node(node) -> str:
     count = getattr(node, "count", 1)
     samples = getattr(node, "sample_lines", [])
     
+    if count <= 2:
+        return "\n".join(samples)
+        
     sample_text = "\n".join(f"  > {s}" for s in samples)
     return f"LOG TEMPLATE: {template} (occurred {count} times)\nSample occurrences:\n{sample_text}"
 
-def prune_tokens(selected_nodes: list, unchanged_pointers: list, rate: float = 0.5) -> str:
+def prune_tokens(selected_nodes: list, unchanged_pointers: list, collapsed_nodes: list = None, rate: float = 0.5) -> str:
     """
-    Cleans and formats selected nodes, then appends unchanged pointers.
+    Cleans and formats selected nodes, appends collapsed/stubbed nodes, then appends unchanged pointers.
     """
     pieces = []
     
@@ -68,6 +71,13 @@ def prune_tokens(selected_nodes: list, unchanged_pointers: list, rate: float = 0
         else:
             text = getattr(node, "body", None) or getattr(node, "template", "") or str(node)
             pieces.append(text)
+
+    # Append collapsed/stubbed nodes
+    if collapsed_nodes:
+        for node in collapsed_nodes:
+            stub_text = getattr(node, "stub", "")
+            if stub_text:
+                pieces.append(stub_text)
 
     # Append unchanged pointers
     if unchanged_pointers:

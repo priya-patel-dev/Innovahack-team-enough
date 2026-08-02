@@ -581,7 +581,7 @@
         /* Selected / Dropped Allocation Nodes */
         .allocation-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 24px;
             margin-top: 10px;
         }
@@ -639,6 +639,13 @@
             color: var(--neon-pink);
             border-color: rgba(255, 0, 127, 0.4);
             text-shadow: 0 0 8px rgba(255, 0, 127, 0.3);
+        }
+
+        .badge-reused {
+            background: rgba(30, 58, 138, 0.6);
+            color: var(--neon-cyan);
+            border-color: rgba(0, 240, 255, 0.4);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
         }
 
         /* Recovery panel */
@@ -762,6 +769,10 @@
                 <button class="btn btn-secondary" id="btn-load-sample" style="width: 100%;">
                     <i class="bx bx-terminal"></i> Load messy_sample.py
                 </button>
+
+                <button class="btn btn-secondary" id="btn-load-logs" style="width: 100%; margin-top: 10px;">
+                    <i class="bx bx-receipt"></i> Load messy_sample.log
+                </button>
             </div>
 
             <div class="glass-panel">
@@ -813,8 +824,8 @@
                 </div>
                 <div class="metric-card accent-green" id="card-retention">
                     <div class="metric-icon"><i class="bx bx-check-shield"></i></div>
-                    <div class="metric-value" id="val-retention">62.0%</div>
-                    <div class="metric-label">Reasoning retention</div>
+                    <div class="metric-value" id="val-retention">65.1%</div>
+                    <div class="metric-label">Reasoning retention (Benchmark)</div>
                 </div>
             </div>
 
@@ -871,12 +882,16 @@
                 <div class="panel-title" style="margin-bottom: 10px;"><i class="bx bx-grid-alt"></i> AST Node Allocation</div>
                 <div class="allocation-container">
                     <div class="allocation-box">
-                        <div class="allocation-header"><i class="bx bx-circle" style="color: var(--neon-green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.4);"></i> Selected Nodes (Sent to Target LLM)</div>
+                        <div class="allocation-header"><i class="bx bx-circle" style="color: var(--neon-green); text-shadow: 0 0 6px rgba(57, 255, 20, 0.4);"></i> Selected Nodes (Sent to LLM)</div>
                         <div class="node-list" id="selected-node-list"></div>
                     </div>
                     <div class="allocation-box">
-                        <div class="allocation-header"><i class="bx bx-info-circle" style="color: var(--neon-magenta); text-shadow: 0 0 6px rgba(255, 0, 127, 0.4);"></i> Dropped Nodes (Cached in Recovery Index)</div>
+                        <div class="allocation-header"><i class="bx bx-info-circle" style="color: var(--neon-magenta); text-shadow: 0 0 6px rgba(255, 0, 127, 0.4);"></i> Dropped Nodes (Recoverable)</div>
                         <div class="node-list" id="dropped-node-list"></div>
+                    </div>
+                    <div class="allocation-box">
+                        <div class="allocation-header"><i class="bx bx-refresh" style="color: var(--neon-cyan); text-shadow: 0 0 6px rgba(0, 240, 255, 0.4);"></i> Reused Nodes (Session Cache)</div>
+                        <div class="node-list" id="reused-node-list"></div>
                     </div>
                 </div>
             </div>
@@ -985,6 +1000,32 @@
             }
         
         return None`;
+
+        // Pre-loaded sample log history
+        const SAMPLE_LOG_VAL = `2026-08-02T08:00:01.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.150:49210 to server 10.0.0.5:5432. Session ID: 550e8400-e29b-41d4-a716-446655440000. Handle: 0x7f8d9c12
+2026-08-02T08:00:01.105Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 550e8400-e29b-41d4-a716-446655440000
+2026-08-02T08:00:02.341Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9c12. Retry count: 1
+2026-08-02T08:00:03.551Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:04.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.155:49212 to server 10.0.0.5:5432. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103. Handle: 0x7f8d9d4f
+2026-08-02T08:00:04.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103
+2026-08-02T08:00:05.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9d4f. Retry count: 2
+2026-08-02T08:00:06.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:07.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.160:49214 to server 10.0.0.5:5432. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204. Handle: 0x7f8d9e9e
+2026-08-02T08:00:07.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204
+2026-08-02T08:00:08.921Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9e9e. Retry count: 3
+2026-08-02T08:00:10.111Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:11.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.165:49216 to server 10.0.0.5:5432. Session ID: 8c4f0e03-b29b-41d4-a716-446655440305. Handle: 0x7f8da01a
+2026-08-02T08:00:11.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 8c4f0e03-b29b-41d4-a716-446655440305
+2026-08-02T08:00:12.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da01a. Retry count: 4
+2026-08-02T08:00:13.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:14.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.170:49218 to server 10.0.0.5:5432. Session ID: 9d5a1b04-b29b-41d4-a716-446655440406. Handle: 0x7f8da15c
+2026-08-02T08:00:14.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 9d5a1b04-b29b-41d4-a716-446655440406
+2026-08-02T08:00:15.921Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da15c. Retry count: 5
+2026-08-02T08:00:17.111Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:18.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.175:49220 to server 10.0.0.5:5432. Session ID: 0e6c2d05-b29b-41d4-a716-446655440507. Handle: 0x7f8da29d
+2026-08-02T08:00:18.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 0e6c2d05-b29b-41d4-a716-446655440507
+2026-08-02T08:00:19.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da29d. Retry count: 6
+2026-08-02T08:00:20.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...`;
 
         // Canvas Particle Background with 3D Wireframe Spinning Cubes
         const canvas = document.getElementById('bg-canvas');
@@ -1170,6 +1211,20 @@
             });
         });
 
+        // Load Sample Logs
+        document.getElementById('btn-load-logs').addEventListener('click', () => {
+            document.getElementById('txt-context').value = SAMPLE_LOG_VAL;
+            document.getElementById('txt-query').value = "What is causing the database query failure?";
+            
+            anime({
+                targets: '#txt-context',
+                scale: [0.98, 1],
+                opacity: [0.7, 1],
+                duration: 500,
+                easing: 'easeOutExpo'
+            });
+        });
+
         // Trigger path particles flow
         function runPipelineFlow() {
             const svgContainer = document.querySelector('.svg-connector-container');
@@ -1268,7 +1323,6 @@
                 animateMetricValue('val-ratio', 0, data.compression_ratio * 100, '%');
                 animateMetricValue('val-cost', 0, data.cost_savings_pct * 100, '%');
                 animateMetricValue('val-speedup', 0, data.latency_speedup_pct * 100, '%');
-                animateMetricValue('val-retention', 0, data.reasoning_retention_score * 100, '%');
 
                 document.getElementById('lbl-orig-tokens').textContent = `${data.original_tokens} tokens`;
                 document.getElementById('lbl-comp-tokens').textContent = `${data.compressed_tokens} tokens`;
@@ -1276,8 +1330,10 @@
 
                 const selectedList = document.getElementById('selected-node-list');
                 const droppedList = document.getElementById('dropped-node-list');
+                const reusedList = document.getElementById('reused-node-list');
                 selectedList.innerHTML = '';
                 droppedList.innerHTML = '';
+                reusedList.innerHTML = '';
 
                 data.selected_nodes.forEach(node => {
                     const badge = document.createElement('span');
@@ -1292,6 +1348,15 @@
                     badge.innerHTML = `<i class='bx bx-minus-circle'></i> ${node}`;
                     droppedList.appendChild(badge);
                 });
+
+                if (data.reused_nodes) {
+                    data.reused_nodes.forEach(node => {
+                        const badge = document.createElement('span');
+                        badge.className = 'node-badge badge-reused';
+                        badge.innerHTML = `<i class='bx bx-refresh'></i> ${node}`;
+                        reusedList.appendChild(badge);
+                    });
+                }
 
                 document.getElementById('panel-allocation').style.display = 'block';
 
@@ -1317,11 +1382,10 @@
             anime({
                 targets: target,
                 val: end,
-                round: 10,
                 duration: 1200,
                 easing: 'easeOutExpo',
                 update: function() {
-                    obj.textContent = (target.val / 10).toFixed(1) + suffix;
+                    obj.textContent = target.val.toFixed(1) + suffix;
                 }
             });
         }

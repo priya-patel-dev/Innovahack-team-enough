@@ -61,9 +61,9 @@ class CompressResponse(BaseModel):
     compression_ratio: float
     cost_savings_pct: float
     latency_speedup_pct: float
-    reasoning_retention_score: float
     selected_nodes: list[str]
     dropped_nodes: list[str]
+    reused_nodes: list[str]
 
 
 @app.post("/compress", response_model=CompressResponse)
@@ -126,20 +126,27 @@ def compress(req: CompressRequest) -> CompressResponse:
     # 5. Budget allocator - decide how many nodes/tokens survive
     budget = req.target_tokens or allocate_budget(req.cost_pressure, req.latency_pressure)
     selected_nodes = []
+    collapsed_nodes = []
     dropped_nodes = []
     running_tokens = 0
     for node in ranked_nodes:
-        if running_tokens + node.token_estimate > budget:
-            recovery_index.store(req.session_id, node)  # keep it recoverable
+        if running_tokens + node.token_estimate <= budget:
+            selected_nodes.append(node)
+            running_tokens += node.token_estimate
+        else:
+            # Full node doesn't fit. Save in recovery.
+            recovery_index.store(req.session_id, node)
+            stub_text = getattr(node, "stub", "")
+            stub_estimate = len(stub_text.split()) if stub_text else 0
+            if stub_text and (running_tokens + stub_estimate <= budget):
+                collapsed_nodes.append(node)
+                running_tokens += stub_estimate
             dropped_nodes.append(node.name)
-            continue
-        selected_nodes.append(node)
-        running_tokens += node.token_estimate
 
     # 6. Token pruner - fine-grained cleanup within what survived
-    compressed_prompt = prune_tokens(selected_nodes, unchanged_pointers)
+    compressed_prompt = prune_tokens(selected_nodes, unchanged_pointers, collapsed_nodes=collapsed_nodes)
 
-    original_tokens = sum(n.token_estimate for n in nodes)
+    original_tokens = len(req.context.split())
     # Estimate compressed tokens using split or tiktoken if possible
     compressed_tokens = len(compressed_prompt.split())
 
@@ -148,7 +155,6 @@ def compress(req: CompressRequest) -> CompressResponse:
     ratio = 1 - (compressed_tokens / max(original_tokens, 1))
     cost_savings_pct = max(0.0, ratio)
     latency_speedup_pct = min(0.95, max(0.0, 0.2 + 0.6 * cost_savings_pct))
-    reasoning_retention_score = min(1.0, max(0.5, 1.0 - 0.45 * (cost_savings_pct ** 2)))
 
     return CompressResponse(
         compressed_prompt=compressed_prompt,
@@ -157,9 +163,9 @@ def compress(req: CompressRequest) -> CompressResponse:
         compression_ratio=ratio,
         cost_savings_pct=cost_savings_pct,
         latency_speedup_pct=latency_speedup_pct,
-        reasoning_retention_score=reasoning_retention_score,
         selected_nodes=[n.name for n in selected_nodes],
         dropped_nodes=dropped_nodes,
+        reused_nodes=[n.name for n in unchanged_pointers],
     )
 
 
