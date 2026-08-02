@@ -1248,7 +1248,8 @@
             loadingOverlay.classList.add('active');
 
             try {
-                const response = await fetch('/compress', {
+                const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+                const response = await fetch(`${apiBase}/compress`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1334,7 +1335,8 @@
             if(!keyword) return;
 
             try {
-                const response = await fetch(`/recover?session_id=${sessionId}&missing_entity=${keyword}`, {
+                const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+                const response = await fetch(`${apiBase}/recover?session_id=${sessionId}&missing_entity=${keyword}`, {
                     method: 'POST'
                 });
                 const data = await response.json();

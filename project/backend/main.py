@@ -29,6 +29,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.on_event("startup")
+def startup_event():
+    print("ZipPrompt Compression API Initialized successfully with CORSMiddleware [Allow All Origins]!")
+
 session_cache = SessionCache()
 recovery_index = RecoveryIndex()
 
