@@ -65,86 +65,15 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Sample Code Loader Helper
-SAMPLE_CODE = """class EnterpriseUserManagerProxyFactory:
-    \"\"\"
-    Very long class docstring that doesn't actually add any real semantic
-    value but takes up dozens of tokens in a prompt window. We want the
-    ZipPrompt compressor to rip this out or squish it heavily.
-    \"\"\"
+SAMPLE_CODE = open(
+    os.path.join(os.path.dirname(__file__), "..", "data", "messy_sample.py"),
+    encoding="utf-8"
+).read()
 
-    def __init__(self):
-        # Initialize variables
-        self.user_data_cache = {}
-        self.is_active = False
-        self.last_login_timestamp = None
-
-    def set_user_data_cache(self, cache):
-        \"\"\" Setter for user_data_cache \"\"\"
-        self.user_data_cache = cache
-        return True
-
-    def get_user_data_cache(self):
-        \"\"\" Getter for user_data_cache \"\"\"
-        return self.user_data_cache
-
-    def set_is_active(self, active_state):
-        \"\"\" Setter for is_active \"\"\"
-        self.is_active = active_state
-        return True
-
-    def get_is_active(self):
-        \"\"\" Getter for is_active \"\"\"
-        return self.is_active
-
-    def calculate_complex_user_metrics(self, user_id):
-        \"\"\"
-        Calculates complex metrics.
-        This is the actual important function that answers queries about user metrics.
-        \"\"\"
-        # Step 1: Check if active
-        if not self.get_is_active():
-            return None
-        
-        # Step 2: Extract from cache
-        if user_id in self.user_data_cache:
-            base_score = self.user_data_cache[user_id].get("score", 0)
-            
-            # Step 3: Some arbitrary logic
-            multiplier = 1.5 if base_score > 100 else 1.0
-            
-            return {
-                "user_id": user_id,
-                "final_score": base_score * multiplier,
-                "status": "PROCESSED"
-            }
-        
-        return None
-"""
-
-SAMPLE_LOG = """2026-08-02T08:00:01.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.150:49210 to server 10.0.0.5:5432. Session ID: 550e8400-e29b-41d4-a716-446655440000. Handle: 0x7f8d9c12
-2026-08-02T08:00:01.105Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 550e8400-e29b-41d4-a716-446655440000
-2026-08-02T08:00:02.341Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9c12. Retry count: 1
-2026-08-02T08:00:03.551Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
-2026-08-02T08:00:04.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.155:49212 to server 10.0.0.5:5432. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103. Handle: 0x7f8d9d4f
-2026-08-02T08:00:04.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103
-2026-08-02T08:00:05.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9d4f. Retry count: 2
-2026-08-02T08:00:06.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
-2026-08-02T08:00:07.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.160:49214 to server 10.0.0.5:5432. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204. Handle: 0x7f8d9e9e
-2026-08-02T08:00:07.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204
-2026-08-02T08:00:08.921Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9e9e. Retry count: 3
-2026-08-02T08:00:10.111Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
-2026-08-02T08:00:11.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.165:49216 to server 10.0.0.5:5432. Session ID: 8c4f0e03-b29b-41d4-a716-446655440305. Handle: 0x7f8da01a
-2026-08-02T08:00:11.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 8c4f0e03-b29b-41d4-a716-446655440305
-2026-08-02T08:00:12.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da01a. Retry count: 4
-2026-08-02T08:00:13.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
-2026-08-02T08:00:14.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.170:49218 to server 10.0.0.5:5432. Session ID: 9d5a1b04-b29b-41d4-a716-446655440406. Handle: 0x7f8da15c
-2026-08-02T08:00:14.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 9d5a1b04-b29b-41d4-a716-446655440406
-2026-08-02T08:00:15.921Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da15c. Retry count: 5
-2026-08-02T08:00:17.111Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
-2026-08-02T08:00:18.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.175:49220 to server 10.0.0.5:5432. Session ID: 0e6c2d05-b29b-41d4-a716-446655440507. Handle: 0x7f8da29d
-2026-08-02T08:00:18.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 0e6c2d05-b29b-41d4-a716-446655440507
-2026-08-02T08:00:19.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da29d. Retry count: 6
-2026-08-02T08:00:20.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection..."""
+SAMPLE_LOG = open(
+    os.path.join(os.path.dirname(__file__), "..", "data", "messy_sample.log"),
+    encoding="utf-8"
+).read()
 
 st.title("🗜️ ZipPrompt — Low-Resource LLM Context Compressor")
 st.caption("Compiler-style context compression with structural parsing, query-aware routing, session-diff cache, and recovery index.")
@@ -232,6 +161,18 @@ if st.session_state.get("compression_executed", False):
     data = st.session_state["pipeline_data"]
     
     st.markdown("---")
+
+    # --- Confidence Gate Banner (Task 1) ---
+    if data.get("low_confidence", False):
+        st.warning(
+            f"⚠️ **Low Confidence Match** (score: {data.get('confidence', 0):.3f}) — "
+            "ZipPrompt may not have enough relevant context for this question. "
+            "Try rephrasing, or check that your context contains relevant code/logs."
+        )
+    else:
+        confidence_val = data.get('confidence', 0)
+        st.success(f"✅ **High Confidence Match** (score: {confidence_val:.3f}) — Context is relevant to your query.")
+
     st.subheader("📊 Live Pipeline Evaluation Metrics")
     
     # 4-Column metrics board

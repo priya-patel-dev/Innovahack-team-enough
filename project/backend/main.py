@@ -61,6 +61,8 @@ class CompressResponse(BaseModel):
     compression_ratio: float
     cost_savings_pct: float
     latency_speedup_pct: float
+    confidence: float          # top TF-IDF relevance score from query router
+    low_confidence: bool       # True when confidence < CONFIDENCE_THRESHOLD
     selected_nodes: list[str]
     dropped_nodes: list[str]
     reused_nodes: list[str]
@@ -77,6 +79,8 @@ def compress(req: CompressRequest) -> CompressResponse:
             compression_ratio=0.0,
             cost_savings_pct=0.0,
             latency_speedup_pct=0.0,
+            confidence=0.0,
+            low_confidence=True,
             reasoning_retention_score=1.0,
             selected_nodes=[],
             dropped_nodes=[],
@@ -90,12 +94,14 @@ def compress(req: CompressRequest) -> CompressResponse:
             compression_ratio=0.0,
             cost_savings_pct=0.0,
             latency_speedup_pct=0.0,
+            confidence=0.0,
+            low_confidence=True,
             reasoning_retention_score=1.0,
             selected_nodes=[],
             dropped_nodes=[],
         )
     
-    if len(req.context) > 200000:  # Oversized paste guard
+    if len(req.context) > 200000:
         return CompressResponse(
             compressed_prompt="Error: Context exceeds safety limit of 200K characters for the hackathon demo.",
             original_tokens=0,
@@ -103,6 +109,8 @@ def compress(req: CompressRequest) -> CompressResponse:
             compression_ratio=0.0,
             cost_savings_pct=0.0,
             latency_speedup_pct=0.0,
+            confidence=0.0,
+            low_confidence=True,
             reasoning_retention_score=1.0,
             selected_nodes=[],
             dropped_nodes=[],
@@ -121,7 +129,9 @@ def compress(req: CompressRequest) -> CompressResponse:
     new_or_changed, unchanged_pointers = session_cache.diff(req.session_id, nodes)
 
     # 4. Query router - rank remaining nodes by relevance to the query
-    ranked_nodes = rank_by_relevance(req.query, new_or_changed)
+    ranked_nodes, confidence = rank_by_relevance(req.query, new_or_changed)
+    from query_router import CONFIDENCE_THRESHOLD
+    low_confidence = confidence < CONFIDENCE_THRESHOLD
 
     # 5. Budget allocator - decide how many nodes/tokens survive
     budget = req.target_tokens or allocate_budget(req.cost_pressure, req.latency_pressure)
@@ -163,6 +173,8 @@ def compress(req: CompressRequest) -> CompressResponse:
         compression_ratio=ratio,
         cost_savings_pct=cost_savings_pct,
         latency_speedup_pct=latency_speedup_pct,
+        confidence=round(confidence, 4),
+        low_confidence=low_confidence,
         selected_nodes=[n.name for n in selected_nodes],
         dropped_nodes=dropped_nodes,
         reused_nodes=[n.name for n in unchanged_pointers],

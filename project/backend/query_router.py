@@ -42,13 +42,15 @@ def _tokenize(text: str, expand_synonyms: bool = False) -> list[str]:
         return list(set(expanded))
     return tokens
 
-def rank_by_relevance(query: str, nodes: list) -> list:
+CONFIDENCE_THRESHOLD = 0.15  # if top score < this, context is too weak to be useful
+
+def rank_by_relevance(query: str, nodes: list) -> tuple[list, float]:
     if not nodes:
-        return []
+        return [], 0.0
 
     query_tokens = _tokenize(query, expand_synonyms=True)
     if not query_tokens:
-        return nodes
+        return nodes, 0.0
 
     node_contents = []
     for node in nodes:
@@ -98,5 +100,7 @@ def rank_by_relevance(query: str, nodes: list) -> list:
         scores.append((score, content["node"]))
 
     # Sort nodes by score descending, maintaining original order for ties
-    ranked = [node for _, node in sorted(scores, key=lambda x: -x[0])]
-    return ranked
+    sorted_scores = sorted(scores, key=lambda x: -x[0])
+    ranked = [node for _, node in sorted_scores]
+    top_score = float(sorted_scores[0][0]) if sorted_scores else 0.0
+    return ranked, top_score
