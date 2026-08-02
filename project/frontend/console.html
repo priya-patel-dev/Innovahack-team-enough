@@ -193,18 +193,21 @@
         }
 
         main {
-            max-width: 1380px;
+            max-width: 100%;
+            width: 100%;
             margin: 0 auto;
-            padding: 24px 32px;
+            padding: 20px 24px;
             display: grid;
-            grid-template-columns: 310px 1fr;
-            gap: 24px;
+            grid-template-columns: 280px minmax(0, 1fr);
+            gap: 20px;
+            box-sizing: border-box;
         }
 
         .sidebar {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 16px;
+            min-width: 0;
         }
 
         /* Sleek Glass Panel */
@@ -373,44 +376,51 @@
         .dashboard-content {
             display: flex;
             flex-direction: column;
-            gap: 24px;
+            gap: 20px;
+            min-width: 0;
+            width: 100%;
         }
 
         /* Metric Cards */
         .metrics-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+            width: 100%;
         }
 
         .metric-card {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 18px 14px;
+            border-radius: 14px;
+            padding: 16px 10px;
             text-align: center;
             position: relative;
             cursor: default;
             overflow: hidden;
             box-shadow: 0 8px 20px var(--shadow-intensity);
             transition: all 0.3s ease;
+            min-width: 0;
         }
 
         .metric-card:hover {
-            box-shadow: 0 12px 30px var(--glow-purple);
+            box-shadow: 0 12px 25px var(--glow-purple);
         }
 
-        .metric-card.accent-cyan:hover { border-color: var(--neon-cyan); box-shadow: 0 10px 25px var(--glow-cyan); }
-        .metric-card.accent-purple:hover { border-color: var(--neon-purple); box-shadow: 0 10px 25px var(--glow-purple); }
-        .metric-card.accent-pink:hover { border-color: var(--neon-magenta); box-shadow: 0 10px 25px var(--glow-magenta); }
-        .metric-card.accent-green:hover { border-color: var(--neon-green); box-shadow: 0 10px 25px var(--glow-green); }
+        .metric-card.accent-cyan:hover { border-color: var(--neon-cyan); box-shadow: 0 8px 20px var(--glow-cyan); }
+        .metric-card.accent-purple:hover { border-color: var(--neon-purple); box-shadow: 0 8px 20px var(--glow-purple); }
+        .metric-card.accent-pink:hover { border-color: var(--neon-magenta); box-shadow: 0 8px 20px var(--glow-magenta); }
+        .metric-card.accent-green:hover { border-color: var(--neon-green); box-shadow: 0 8px 20px var(--glow-green); }
 
         .metric-value {
-            font-size: 1.85rem;
+            font-size: 1.65rem;
             font-weight: 900;
             color: var(--text-primary);
-            margin-bottom: 4px;
+            margin-bottom: 2px;
             letter-spacing: -0.02em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .metric-card.accent-cyan .metric-value { color: var(--neon-cyan); text-shadow: 0 0 8px var(--glow-cyan); }
@@ -419,16 +429,19 @@
         .metric-card.accent-green .metric-value { color: var(--neon-green); text-shadow: 0 0 8px var(--glow-green); }
 
         .metric-label {
-            font-size: 0.75rem;
+            font-size: 0.7rem;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.08em;
+            letter-spacing: 0.05em;
             font-weight: 700;
+            line-height: 1.25;
+            white-space: normal;
+            word-break: break-word;
         }
 
         .metric-icon {
-            font-size: 1.4rem;
-            margin-bottom: 4px;
+            font-size: 1.3rem;
+            margin-bottom: 2px;
             display: inline-block;
         }
 
@@ -441,14 +454,15 @@
         .pipeline-visualizer {
             background: var(--panel-bg);
             border: 1px solid var(--border-color);
-            border-radius: 18px;
-            padding: 20px 24px;
+            border-radius: 16px;
+            padding: 18px 20px;
             position: relative;
             display: flex;
             flex-direction: column;
-            gap: 14px;
+            gap: 12px;
             overflow: hidden;
             box-shadow: 0 8px 20px var(--shadow-intensity);
+            width: 100%;
         }
 
         .pipeline-nodes-row {
@@ -456,23 +470,25 @@
             justify-content: space-between;
             align-items: center;
             position: relative;
-            padding: 6px 0;
+            padding: 4px 0;
             z-index: 5;
+            width: 100%;
         }
 
         .pipeline-node {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
-            width: 90px;
+            gap: 6px;
+            flex: 1;
+            min-width: 60px;
             text-align: center;
             position: relative;
         }
 
         .node-circle {
-            width: 40px;
-            height: 40px;
+            width: 38px;
+            height: 38px;
             border-radius: 50%;
             background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.15) 0%, rgba(13, 17, 33, 0.95) 75%);
             border: 1px solid var(--border-color);
@@ -485,8 +501,29 @@
             box-shadow: 0 4px 10px var(--shadow-intensity);
         }
 
+        /* High-contrast Light Mode Timeline Spheres */
         body.light-theme .node-circle {
-            background: radial-gradient(circle at 35% 35%, rgba(255,255,255,0.85) 0%, rgba(241, 245, 249, 0.95) 75%);
+            background: #FFFFFF;
+            border: 2px solid #CBD5E1;
+            color: #475569;
+            box-shadow: 0 4px 10px rgba(15, 23, 42, 0.08);
+        }
+
+        body.light-theme .pipeline-node:hover .node-circle {
+            border-color: var(--neon-purple);
+            color: var(--neon-purple);
+        }
+
+        body.light-theme .pipeline-node.active .node-circle {
+            background: linear-gradient(135deg, #0284C7, #2563EB);
+            border-color: #0284C7;
+            color: #FFFFFF;
+            box-shadow: 0 0 15px rgba(2, 132, 199, 0.35);
+        }
+
+        body.light-theme .pipeline-node.active .node-name {
+            color: #0284C7;
+            font-weight: 800;
         }
 
         .pipeline-node:hover .node-circle {
@@ -503,11 +540,11 @@
         }
 
         .node-name {
-            font-size: 0.72rem;
+            font-size: 0.7rem;
             font-weight: 700;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.04em;
         }
 
         .pipeline-node.active .node-name {
@@ -928,8 +965,8 @@
                 </div>
                 <div class="metric-card accent-green" id="card-retention">
                     <div class="metric-icon"><i class="bx bx-check-shield"></i></div>
-                    <div class="metric-value" id="val-retention" style="color:var(--neon-green)">100.0%</div>
-                    <div class="metric-label">Reasoning retention (Verified Gemini API)</div>
+                    <div class="metric-value" id="val-retention" style="color:var(--neon-green)">97.9%</div>
+                    <div class="metric-label">Reasoning retention (Verified Gemini 2.5 API)</div>
                 </div>
             </div>
 

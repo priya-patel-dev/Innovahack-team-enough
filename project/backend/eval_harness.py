@@ -55,6 +55,7 @@ class EvalResult:
     compressed_latency_s: float
     latency_speedup_pct: float
     is_mock: bool
+    qa_samples: list = None
 
 # FROZEN — do not adjust these answers to chase a "better" score.
 # These are offline fallback answers for pipeline testing only.
@@ -159,14 +160,22 @@ def _ask_llm(prompt: str, question: str, is_compressed: bool) -> tuple[str, floa
     answer = ""
     
     if gemini_key:
-        try:
-            import google.generativeai as genai
-            genai.configure(api_key=gemini_key)
-            model = genai.GenerativeModel("gemini-1.5-flash")
-            response = model.generate_content(f"Prompt context:\n{prompt}\n\nQuestion: {question}")
-            answer = response.text
-        except Exception as e:
-            answer = f"Gemini API Error: {str(e)}"
+        import google.generativeai as genai
+        genai.configure(api_key=gemini_key)
+        model = genai.GenerativeModel("gemini-2.5-flash")
+        
+        for attempt in range(4):
+            try:
+                response = model.generate_content(f"Prompt context:\n{prompt}\n\nQuestion: {question}")
+                answer = response.text
+                break
+            except Exception as e:
+                err_str = str(e)
+                if "429" in err_str or "ResourceExhausted" in err_str or "Quota" in err_str:
+                    print(f"  [Rate limit hit, attempt {attempt+1}/4. Waiting 12s for Gemini quota reset...]")
+                    time.sleep(12)
+                else:
+                    raise RuntimeError(f"Gemini API Error: {err_str}")
     elif anthropic_key:
         try:
             from anthropic import Anthropic
@@ -178,7 +187,7 @@ def _ask_llm(prompt: str, question: str, is_compressed: bool) -> tuple[str, floa
             )
             answer = "".join(block.text for block in resp.content if hasattr(block, "text"))
         except Exception as e:
-            answer = f"Anthropic API Error: {str(e)}"
+            raise RuntimeError(f"Anthropic API Error: {str(e)}")
 
     elapsed = time.time() - start
     return answer, elapsed
@@ -189,6 +198,7 @@ def run_eval(original_prompt: str, eval_questions: list[str], budget: int) -> Ev
     orig_answers, comp_answers = [], []
     orig_latencies, comp_latencies = [], []
     comp_tokens_list = []
+    qa_samples = []
 
     from ingestion import detect_domain
     from custom_codecs.log_codec import build_log_templates
@@ -229,12 +239,16 @@ def run_eval(original_prompt: str, eval_questions: list[str], budget: int) -> Ev
         comp_answers.append(ca)
         orig_latencies.append(ol)
         comp_latencies.append(cl)
+        qa_samples.append({
+            "question": q,
+            "original_answer": oa,
+            "compressed_answer": ca,
+            "similarity": _answer_similarity(oa, ca, q)
+        })
 
     avg_comp_tokens = int(sum(comp_tokens_list) / len(comp_tokens_list))
     
-    retention_scores = [
-        _answer_similarity(o, c, q) for o, c, q in zip(orig_answers, comp_answers, eval_questions)
-    ]
+    retention_scores = [s["similarity"] for s in qa_samples]
 
     orig_cost = orig_tokens / 1000 * PRICE_PER_1K_INPUT_TOKENS
     comp_cost = avg_comp_tokens / 1000 * PRICE_PER_1K_INPUT_TOKENS
@@ -254,16 +268,29 @@ def run_eval(original_prompt: str, eval_questions: list[str], budget: int) -> Ev
         original_latency_s=orig_lat,
         compressed_latency_s=comp_lat,
         latency_speedup_pct=1.0 - (comp_lat / max(orig_lat, 1e-9)),
-        is_mock=is_mock
+        is_mock=is_mock,
+        qa_samples=qa_samples
     )
 
 def generate_eval_report(result: EvalResult, output_path: str):
     if result.is_mock:
         mode_str = "MOCK MODE (Simulated Model Output)"
     else:
-        api_type = "Gemini" if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") else "Anthropic"
+        api_type = "Gemini (gemini-2.5-flash)" if os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") else "Anthropic"
         mode_str = f"LIVE API ({api_type})"
     
+    qa_details_md = ""
+    if result.qa_samples:
+        for idx, sample in enumerate(result.qa_samples, 1):
+            qa_details_md += f"""
+#### Question {idx}: "{sample['question']}"
+- **Similarity Score**: {sample['similarity']*100:.2f}%
+- **Original Context Answer**:
+  > {sample['original_answer']}
+- **Compressed Context Answer**:
+  > {sample['compressed_answer']}
+"""
+
     report = f"""# ZipPrompt Evaluation Results
 Generated on: {time.strftime('%Y-%m-%d %H:%M:%S')}
 Evaluation Mode: **{mode_str}**
@@ -290,10 +317,13 @@ ZipPrompt parsed the codebase context into structural AST components, filtered i
 - **Net Savings per 10k requests:** ${(result.original_cost_usd - result.compressed_cost_usd) * 10000:.2f}
 
 ### 3. Reasoning and Downstream Quality Retention
-By preserving the signature and high-relevance blocks in full while stripping boilerplate, the LLM retains almost all functional context.
+By preserving the signature and high-relevance blocks in full while stripping boilerplate, the LLM retains functional context.
 - **Reasoning Retention Score:** **{result.reasoning_retention_score * 100:.1f}%** (semantic similarity of answers)
+
+### 4. Live Model Response Verification (Raw Gemini Responses)
+{qa_details_md}
 """
-    with open(output_path, "w") as f:
+    with open(output_path, "w", encoding="utf-8") as f:
         f.write(report)
     print(f"Report successfully saved to {output_path}")
 
