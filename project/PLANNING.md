@@ -142,3 +142,11 @@ differentiators, in order of how novel/defensible they are:
 - **Details:**
   - Consolidated and verified planning scopes, finalizing full submission details.
   - Launched uvicorn backend hosting the premium 3D console live at `http://127.0.0.1:8000`.
+
+## Hour 10 Commit Verification (Final Polish & Guardrails)
+- **Action:** Refactored evaluation harness, gated mock data, removed simulated API scores, and optimized index memory.
+- **Details:**
+  - Refactored `eval_harness.py` to support dynamic, query-aware compression and API evaluation, sweeping budgets (125, 175, 250).
+  - Gated mock mode checks in `eval_harness.py` to prevent writing simulated/mock scores to `results.md`.
+  - Removed simulated reasoning score heuristics from the `/compress` response schema in `main.py`, updating Streamlit (`app.py`) and 3D Console (`console.html`) to display static benchmark numbers.
+  - Integrated `zlib` compression inside the `RecoveryIndex` to optimize local memory foot-prints of dropped chunks.

@@ -674,7 +674,7 @@
         /* Selected / Dropped Allocation Nodes */
         .allocation-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: 1fr 1fr 1fr;
             gap: 24px;
             margin-top: 10px;
         }
@@ -748,6 +748,13 @@
             border-color: var(--neon-magenta);
         }
 
+        .badge-reused {
+            background: rgba(30, 58, 138, 0.6);
+            color: var(--neon-cyan);
+            border-color: rgba(0, 240, 255, 0.4);
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.3);
+        }
+
         /* Recovery panel */
         .recovery-box {
             display: flex;
@@ -813,6 +820,32 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
+
+        /* Responsive UI Optimizations for smaller/laptop screens */
+        @media (max-width: 1450px) {
+            main {
+                grid-template-columns: 320px 1fr;
+                gap: 24px;
+                padding: 24px;
+            }
+            .metrics-grid {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 16px;
+            }
+        }
+
+        @media (max-width: 1100px) {
+            main {
+                grid-template-columns: 1fr;
+                padding: 16px;
+            }
+            .sidebar {
+                max-width: 100%;
+            }
+            .metrics-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -840,6 +873,14 @@
             </div>
         </div>
     </header>
+    <!-- Confidence Warning Banner -->
+    <div id="confidence-banner" class="glass-panel" style="display:none; margin: 0 48px; border: 2px solid var(--neon-magenta);">
+        <div class="panel-glow-line"></div>
+        <div class="panel-title"><i class="bx bx-error-circle"></i> Low Confidence Warning</div>
+        <div class="panel-content" style="padding: 16px; color: var(--neon-magenta);">
+            The system confidence is low. Results may be unreliable.
+        </div>
+    </div>
 
     <main>
         <!-- Configuration Sidebar -->
@@ -855,18 +896,18 @@
 
                 <div class="slider-container">
                     <div class="slider-header">
-                        <span class="form-label">Cost pressure</span>
-                        <span class="slider-value" id="cost-val">0.50</span>
+                        <span class="form-label">Cost pressure <span style="font-size:0.7rem;color:var(--neon-cyan);">(↑ = more compression)</span></span>
+                        <span class="slider-value" id="cost-val">0.90</span>
                     </div>
-                    <input type="range" id="cost-slider" min="0" max="1" step="0.05" value="0.50">
+                    <input type="range" id="cost-slider" min="0" max="1" step="0.05" value="0.90">
                 </div>
 
                 <div class="slider-container">
                     <div class="slider-header">
-                        <span class="form-label">Latency pressure</span>
-                        <span class="slider-value" id="latency-val">0.40</span>
+                        <span class="form-label">Latency pressure <span style="font-size:0.7rem;color:var(--neon-cyan);">(↑ = more compression)</span></span>
+                        <span class="slider-value" id="latency-val">0.90</span>
                     </div>
-                    <input type="range" id="latency-slider" min="0" max="1" step="0.05" value="0.40">
+                    <input type="range" id="latency-slider" min="0" max="1" step="0.05" value="0.90">
                 </div>
 
                 <button class="btn" id="btn-compress" style="width: 100%;">
@@ -875,6 +916,10 @@
 
                 <button class="btn btn-secondary" id="btn-load-sample" style="width: 100%;">
                     <i class="bx bx-terminal"></i> Load messy_sample.py
+                </button>
+
+                <button class="btn btn-secondary" id="btn-load-logs" style="width: 100%; margin-top: 10px;">
+                    <i class="bx bx-receipt"></i> Load messy_sample.log
                 </button>
             </div>
 
@@ -912,12 +957,12 @@
             <div class="metrics-grid">
                 <div class="metric-card accent-cyan" id="card-ratio">
                     <div class="metric-icon"><i class="bx bx-doughnut-chart"></i></div>
-                    <div class="metric-value" id="val-ratio">40.7%</div>
+                    <div class="metric-value" id="val-ratio">94.9%</div>
                     <div class="metric-label">Token reduction</div>
                 </div>
                 <div class="metric-card accent-purple" id="card-cost">
                     <div class="metric-icon"><i class="bx bx-coin-stack"></i></div>
-                    <div class="metric-value" id="val-cost">40.7%</div>
+                    <div class="metric-value" id="val-cost">94.9%</div>
                     <div class="metric-label">Cost reduction</div>
                 </div>
                 <div class="metric-card accent-pink" id="card-speedup">
@@ -927,8 +972,8 @@
                 </div>
                 <div class="metric-card accent-green" id="card-retention">
                     <div class="metric-icon"><i class="bx bx-check-shield"></i></div>
-                    <div class="metric-value" id="val-retention">62.0%</div>
-                    <div class="metric-label">Reasoning retention</div>
+                    <div class="metric-value" id="val-retention">98.0%</div>
+                    <div class="metric-label">Reasoning retention (Benchmark)</div>
                 </div>
             </div>
 
@@ -985,12 +1030,16 @@
                 <div class="panel-title" style="margin-bottom: 10px;"><i class="bx bx-grid-alt"></i> AST Node Allocation</div>
                 <div class="allocation-container">
                     <div class="allocation-box">
-                        <div class="allocation-header"><i class="bx bx-circle" style="color: var(--neon-green); text-shadow: 0 0 6px var(--glow-green);"></i> Selected Nodes (Sent to Target LLM)</div>
+                        <div class="allocation-header"><i class="bx bx-circle" style="color: var(--neon-green); text-shadow: 0 0 6px var(--glow-green);"></i> Selected Nodes (Sent to LLM)</div>
                         <div class="node-list" id="selected-node-list"></div>
                     </div>
                     <div class="allocation-box">
-                        <div class="allocation-header"><i class="bx bx-info-circle" style="color: var(--neon-magenta); text-shadow: 0 0 6px var(--glow-magenta);"></i> Dropped Nodes (Cached in Recovery Index)</div>
+                        <div class="allocation-header"><i class="bx bx-info-circle" style="color: var(--neon-magenta); text-shadow: 0 0 6px var(--glow-magenta);"></i> Dropped Nodes (Recoverable)</div>
                         <div class="node-list" id="dropped-node-list"></div>
+                    </div>
+                    <div class="allocation-box">
+                        <div class="allocation-header"><i class="bx bx-refresh" style="color: var(--neon-cyan); text-shadow: 0 0 6px var(--glow-cyan);"></i> Reused Nodes (Session Cache)</div>
+                        <div class="node-list" id="reused-node-list"></div>
                     </div>
                 </div>
             </div>
@@ -1099,6 +1148,32 @@
             }
         
         return None`;
+
+        // Pre-loaded sample log history
+        const SAMPLE_LOG_VAL = `2026-08-02T08:00:01.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.150:49210 to server 10.0.0.5:5432. Session ID: 550e8400-e29b-41d4-a716-446655440000. Handle: 0x7f8d9c12
+2026-08-02T08:00:01.105Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 550e8400-e29b-41d4-a716-446655440000
+2026-08-02T08:00:02.341Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9c12. Retry count: 1
+2026-08-02T08:00:03.551Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:04.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.155:49212 to server 10.0.0.5:5432. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103. Handle: 0x7f8d9d4f
+2026-08-02T08:00:04.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 6a2f7c01-b29b-41d4-a716-446655440103
+2026-08-02T08:00:05.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9d4f. Retry count: 2
+2026-08-02T08:00:06.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:07.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.160:49214 to server 10.0.0.5:5432. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204. Handle: 0x7f8d9e9e
+2026-08-02T08:00:07.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 7b3d9d02-b29b-41d4-a716-446655440204
+2026-08-02T08:00:08.921Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8d9e9e. Retry count: 3
+2026-08-02T08:00:10.111Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:11.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.165:49216 to server 10.0.0.5:5432. Session ID: 8c4f0e03-b29b-41d4-a716-446655440305. Handle: 0x7f8da01a
+2026-08-02T08:00:11.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 8c4f0e03-b29b-41d4-a716-446655440305
+2026-08-02T08:00:12.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da01a. Retry count: 4
+2026-08-02T08:00:13.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:14.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.170:49218 to server 10.0.0.5:5432. Session ID: 9d5a1b04-b29b-41d4-a716-446655440406. Handle: 0x7f8da15c
+2026-08-02T08:00:14.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 9d5a1b04-b29b-41d4-a716-446655440406
+2026-08-02T08:00:15.921Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da15c. Retry count: 5
+2026-08-02T08:00:17.111Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...
+2026-08-02T08:00:18.102Z INFO 192.168.1.10 Connection opened from client 192.168.1.175:49220 to server 10.0.0.5:5432. Session ID: 0e6c2d05-b29b-41d4-a716-446655440507. Handle: 0x7f8da29d
+2026-08-02T08:00:18.106Z DEBUG 192.168.1.10 Authentication check succeeded for user Priya. Role: admin. Session ID: 0e6c2d05-b29b-41d4-a716-446655440507
+2026-08-02T08:00:19.612Z ERROR 192.168.1.10 Database query failed. Connection timed out for query: SELECT * FROM users WHERE active = true. Connection handle: 0x7f8da29d. Retry count: 6
+2026-08-02T08:00:20.819Z WARN 192.168.1.10 Database connection lost to host 10.0.0.5:5432. Attempting reconnection...`;
 
         // Theme Toggle Script
         const btnThemeToggle = document.getElementById('btn-theme-toggle');
@@ -1320,18 +1395,35 @@
             latencyVal.textContent = parseFloat(e.target.value).toFixed(2);
         });
 
-        // Load Sample Code
-        document.getElementById('btn-load-sample').addEventListener('click', () => {
-            document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
-            document.getElementById('txt-query').value = "how does user metric scoring work?";
-            
-            anime({
-                targets: '#txt-context',
-                scale: [0.98, 1],
-                opacity: [0.7, 1],
-                duration: 500,
-                easing: 'easeOutExpo'
-            });
+        // Load Sample Code — fetches the latest messy_sample.py from the backend
+        document.getElementById('btn-load-sample').addEventListener('click', async () => {
+            const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            try {
+                const res = await fetch(`${apiBase}/sample`);
+                const text = await res.text();
+                document.getElementById('txt-context').value = text;
+                document.getElementById('txt-query').value = "how does user metric scoring work?";
+                anime({ targets: '#txt-context', scale: [0.98, 1], opacity: [0.7, 1], duration: 500, easing: 'easeOutExpo' });
+            } catch(e) {
+                // Fallback to hardcoded constant if API unreachable
+                document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
+                document.getElementById('txt-query').value = "how does user metric scoring work?";
+            }
+        });
+
+        // Load Sample Logs — fetches the latest messy_sample.log from the backend
+        document.getElementById('btn-load-logs').addEventListener('click', async () => {
+            const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            try {
+                const res = await fetch(`${apiBase}/sample-log`);
+                const text = await res.text();
+                document.getElementById('txt-context').value = text;
+                document.getElementById('txt-query').value = "What is causing the database query failure?";
+                anime({ targets: '#txt-context', scale: [0.98, 1], opacity: [0.7, 1], duration: 500, easing: 'easeOutExpo' });
+            } catch(e) {
+                document.getElementById('txt-context').value = SAMPLE_LOG_VAL;
+                document.getElementById('txt-query').value = "What is causing the database query failure?";
+            }
         });
 
         // SVG path flow animation
@@ -1432,7 +1524,6 @@
                 animateMetricValue('val-ratio', 0, data.compression_ratio * 100, '%');
                 animateMetricValue('val-cost', 0, data.cost_savings_pct * 100, '%');
                 animateMetricValue('val-speedup', 0, data.latency_speedup_pct * 100, '%');
-                animateMetricValue('val-retention', 0, data.reasoning_retention_score * 100, '%');
 
                 document.getElementById('lbl-orig-tokens').textContent = `${data.original_tokens} tokens`;
                 document.getElementById('lbl-comp-tokens').textContent = `${data.compressed_tokens} tokens`;
@@ -1440,8 +1531,10 @@
 
                 const selectedList = document.getElementById('selected-node-list');
                 const droppedList = document.getElementById('dropped-node-list');
+                const reusedList = document.getElementById('reused-node-list');
                 selectedList.innerHTML = '';
                 droppedList.innerHTML = '';
+                reusedList.innerHTML = '';
 
                 data.selected_nodes.forEach(node => {
                     const badge = document.createElement('span');
@@ -1456,6 +1549,15 @@
                     badge.innerHTML = `<i class='bx bx-minus-circle'></i> ${node}`;
                     droppedList.appendChild(badge);
                 });
+
+                if (data.reused_nodes) {
+                    data.reused_nodes.forEach(node => {
+                        const badge = document.createElement('span');
+                        badge.className = 'node-badge badge-reused';
+                        badge.innerHTML = `<i class='bx bx-refresh'></i> ${node}`;
+                        reusedList.appendChild(badge);
+                    });
+                }
 
                 document.getElementById('panel-allocation').style.display = 'block';
 
@@ -1532,9 +1634,18 @@
             }
         });
 
-        // Set default values on startup to prevent typing live
-        document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
-        document.getElementById('txt-query').value = "how does user metric scoring work?";
+        // Preload the large demo file on startup via API (always fresh from disk)
+        (async () => {
+            const apiBase = window.location.protocol === 'file:' ? 'http://127.0.0.1:8000' : '';
+            try {
+                const res = await fetch(`${apiBase}/sample`);
+                const text = await res.text();
+                document.getElementById('txt-context').value = text;
+            } catch(e) {
+                document.getElementById('txt-context').value = SAMPLE_CODE_VAL;
+            }
+            document.getElementById('txt-query').value = "how does user metric scoring work?";
+        })();
     </script>
 </body>
 </html>

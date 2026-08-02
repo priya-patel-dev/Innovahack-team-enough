@@ -80,13 +80,13 @@ def test_e2e():
 
     print("\n--- Stage 4: Query Router ---")
     query = "how does user metric scoring work?"
-    ranked = rank_by_relevance(query, nodes)
+    ranked, confidence = rank_by_relevance(query, nodes)
     print("Ranked nodes for query:")
     for i, n in enumerate(ranked):
         print(f" {i+1}. {n.name}")
     
     # The most relevant function should be calculate_complex_user_metrics
-    assert ranked[0].name == "calculate_complex_user_metrics"
+    assert ranked[0].name == "EnterpriseUserManagerProxyFactory.calculate_complex_user_metrics"
 
     print("\n--- Stage 5 & 6: Budgeting & Pruning ---")
     # Set a budget that fits only the top 3 nodes

@@ -61,9 +61,11 @@ class CompressResponse(BaseModel):
     compression_ratio: float
     cost_savings_pct: float
     latency_speedup_pct: float
-    reasoning_retention_score: float
+    confidence: float          # top TF-IDF relevance score from query router
+    low_confidence: bool       # True when confidence < CONFIDENCE_THRESHOLD
     selected_nodes: list[str]
     dropped_nodes: list[str]
+    reused_nodes: list[str]
 
 
 @app.post("/compress", response_model=CompressResponse)
@@ -77,6 +79,8 @@ def compress(req: CompressRequest) -> CompressResponse:
             compression_ratio=0.0,
             cost_savings_pct=0.0,
             latency_speedup_pct=0.0,
+            confidence=0.0,
+            low_confidence=True,
             reasoning_retention_score=1.0,
             selected_nodes=[],
             dropped_nodes=[],
@@ -90,12 +94,14 @@ def compress(req: CompressRequest) -> CompressResponse:
             compression_ratio=0.0,
             cost_savings_pct=0.0,
             latency_speedup_pct=0.0,
+            confidence=0.0,
+            low_confidence=True,
             reasoning_retention_score=1.0,
             selected_nodes=[],
             dropped_nodes=[],
         )
     
-    if len(req.context) > 200000:  # Oversized paste guard
+    if len(req.context) > 200000:
         return CompressResponse(
             compressed_prompt="Error: Context exceeds safety limit of 200K characters for the hackathon demo.",
             original_tokens=0,
@@ -103,6 +109,8 @@ def compress(req: CompressRequest) -> CompressResponse:
             compression_ratio=0.0,
             cost_savings_pct=0.0,
             latency_speedup_pct=0.0,
+            confidence=0.0,
+            low_confidence=True,
             reasoning_retention_score=1.0,
             selected_nodes=[],
             dropped_nodes=[],
@@ -121,25 +129,35 @@ def compress(req: CompressRequest) -> CompressResponse:
     new_or_changed, unchanged_pointers = session_cache.diff(req.session_id, nodes)
 
     # 4. Query router - rank remaining nodes by relevance to the query
-    ranked_nodes = rank_by_relevance(req.query, new_or_changed)
+    ranked_nodes, _ = rank_by_relevance(req.query, new_or_changed)
+    _, confidence = rank_by_relevance(req.query, nodes)
+    from query_router import CONFIDENCE_THRESHOLD
+    low_confidence = confidence < CONFIDENCE_THRESHOLD
 
     # 5. Budget allocator - decide how many nodes/tokens survive
     budget = req.target_tokens or allocate_budget(req.cost_pressure, req.latency_pressure)
     selected_nodes = []
+    collapsed_nodes = []
     dropped_nodes = []
     running_tokens = 0
     for node in ranked_nodes:
-        if running_tokens + node.token_estimate > budget:
-            recovery_index.store(req.session_id, node)  # keep it recoverable
+        if running_tokens + node.token_estimate <= budget:
+            selected_nodes.append(node)
+            running_tokens += node.token_estimate
+        else:
+            # Full node doesn't fit. Save in recovery.
+            recovery_index.store(req.session_id, node)
+            stub_text = getattr(node, "stub", "")
+            stub_estimate = len(stub_text.split()) if stub_text else 0
+            if stub_text and (running_tokens + stub_estimate <= budget):
+                collapsed_nodes.append(node)
+                running_tokens += stub_estimate
             dropped_nodes.append(node.name)
-            continue
-        selected_nodes.append(node)
-        running_tokens += node.token_estimate
 
     # 6. Token pruner - fine-grained cleanup within what survived
-    compressed_prompt = prune_tokens(selected_nodes, unchanged_pointers)
+    compressed_prompt = prune_tokens(selected_nodes, unchanged_pointers, collapsed_nodes=collapsed_nodes)
 
-    original_tokens = sum(n.token_estimate for n in nodes)
+    original_tokens = len(req.context.split())
     # Estimate compressed tokens using split or tiktoken if possible
     compressed_tokens = len(compressed_prompt.split())
 
@@ -148,7 +166,6 @@ def compress(req: CompressRequest) -> CompressResponse:
     ratio = 1 - (compressed_tokens / max(original_tokens, 1))
     cost_savings_pct = max(0.0, ratio)
     latency_speedup_pct = min(0.95, max(0.0, 0.2 + 0.6 * cost_savings_pct))
-    reasoning_retention_score = min(1.0, max(0.5, 1.0 - 0.45 * (cost_savings_pct ** 2)))
 
     return CompressResponse(
         compressed_prompt=compressed_prompt,
@@ -157,9 +174,11 @@ def compress(req: CompressRequest) -> CompressResponse:
         compression_ratio=ratio,
         cost_savings_pct=cost_savings_pct,
         latency_speedup_pct=latency_speedup_pct,
-        reasoning_retention_score=reasoning_retention_score,
+        confidence=round(confidence, 4),
+        low_confidence=low_confidence,
         selected_nodes=[n.name for n in selected_nodes],
         dropped_nodes=dropped_nodes,
+        reused_nodes=[n.name for n in unchanged_pointers],
     )
 
 
@@ -167,6 +186,26 @@ def compress(req: CompressRequest) -> CompressResponse:
 def recover(session_id: str, missing_entity: str):
     """Stage 7 loop: pull back a specific dropped chunk on demand."""
     return recovery_index.lookup(session_id, missing_entity)
+
+
+@app.get("/sample")
+def get_sample_code():
+    """Serves messy_sample.py content so the frontend always reflects the latest file."""
+    from fastapi.responses import PlainTextResponse
+    data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+    path = os.path.join(data_dir, "messy_sample.py")
+    with open(path, "r", encoding="utf-8") as f:
+        return PlainTextResponse(f.read())
+
+
+@app.get("/sample-log")
+def get_sample_log():
+    """Serves messy_sample.log content so the frontend always reflects the latest file."""
+    from fastapi.responses import PlainTextResponse
+    data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data"))
+    path = os.path.join(data_dir, "messy_sample.log")
+    with open(path, "r", encoding="utf-8") as f:
+        return PlainTextResponse(f.read())
 
 
 if __name__ == "__main__":

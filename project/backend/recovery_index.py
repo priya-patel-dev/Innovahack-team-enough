@@ -6,10 +6,11 @@ A lightweight keyword-overlap scorer searches stored chunks and pulls the
 most relevant one back on demand. Zero dependencies, CPU-only.
 """
 import re
+import zlib
 
 class RecoveryIndex:
     def __init__(self):
-        # session_id -> list of dicts {"id": str, "name": str, "text": str}
+        # session_id -> list of dicts {"id": str, "name": str, "text": bytes}
         self._store: dict[str, list[dict]] = {}
 
     def store(self, session_id: str, node) -> None:
@@ -20,10 +21,11 @@ class RecoveryIndex:
         
         # Check if already stored to avoid duplicates
         if not any(item["id"] == node.id for item in self._store[session_id]):
+            compressed_text = zlib.compress(text.encode('utf-8'))
             self._store[session_id].append({
                 "id": node.id,
                 "name": getattr(node, "name", node.id),
-                "text": text
+                "text": compressed_text
             })
 
     def lookup(self, session_id: str, query: str, n_results: int = 1):
@@ -43,7 +45,8 @@ class RecoveryIndex:
                 expanded_terms.extend(["set_"])
         
         def score(doc):
-            text_lower = (doc["name"] + " " + doc["text"]).lower()
+            decompressed_text = zlib.decompress(doc["text"]).decode('utf-8')
+            text_lower = (doc["name"] + " " + decompressed_text).lower()
             return sum(1 for term in expanded_terms if term in text_lower)
             
         ranked = sorted(self._store[session_id], key=score, reverse=True)
@@ -53,12 +56,17 @@ class RecoveryIndex:
         if not best:
             return {"found": False, "results": []}
             
+        best_docs = []
+        for b in best:
+            decompressed_text = zlib.decompress(b["text"]).decode('utf-8')
+            best_docs.append(decompressed_text)
+
         # Format similar to how chromadb would return
         return {
             "found": True, 
             "results": {
                 "ids": [[b["id"] for b in best]],
-                "documents": [[b["text"] for b in best]],
+                "documents": [best_docs],
                 "metadatas": [[{"name": b["name"]} for b in best]]
             }
         }
