@@ -11,9 +11,6 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 
-from drain3 import TemplateMiner
-from drain3.template_miner_config import TemplateMinerConfig
-
 
 @dataclass
 class LogNode:
@@ -51,33 +48,26 @@ def preprocess_log_line(line: str) -> str:
 
 
 def build_log_templates(raw_logs: str, max_samples_per_cluster: int = 2) -> list[LogNode]:
-    config = TemplateMinerConfig()
-    # use library defaults; tune drain3.ini for real data
-    miner = TemplateMiner(config=config)
-
-    clusters: dict[int, list[str]] = {}
+    """Pure-Python regex-based log clustering replacing external Drain3 dependency."""
+    clusters: dict[str, list[str]] = {}
 
     for line in raw_logs.splitlines():
         line = line.strip()
         if not line:
             continue
-        # Preprocess to strip parameter noise
         cleaned_line = preprocess_log_line(line)
-        result = miner.add_log_message(cleaned_line)
-        cluster_id = result["cluster_id"]
-        clusters.setdefault(cluster_id, []).append(cleaned_line)
+        # Collapse numbers/digits to general <NUM> markers for simple template keying
+        pattern = re.sub(r'\b\d+\b', '<NUM>', cleaned_line)
+        clusters.setdefault(pattern, []).append(cleaned_line)
 
     nodes: list[LogNode] = []
-    for cluster in miner.drain.clusters:
-        lines = clusters.get(cluster.cluster_id, [])
-        template = cluster.get_template()
-        
+    for idx, (template, lines) in enumerate(clusters.items()):
         # Stub version: template name and count only
         stub = f"LOG TEMPLATE: {template} (occurred {len(lines)} times) - [collapsed: query Stage 7 to recover samples]"
         
         node = LogNode(
-            id=f"log_cluster_{cluster.cluster_id}",
-            name=template,
+            id=f"log_cluster_{idx + 1}",
+            name=template[:60],
             template=template,
             count=len(lines),
             sample_lines=lines[:max_samples_per_cluster],
