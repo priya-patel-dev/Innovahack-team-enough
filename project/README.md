@@ -75,9 +75,10 @@ cd frontend && streamlit run app.py
 
 ## 🎨 Dynamic 3D Console Frontend
 
-A premium dynamic 3D colorful dashboard is now served directly from the FastAPI backend root path.
+A premium dynamic 3D colorful dashboard is served directly from the FastAPI backend root path or live on Vercel.
 Access it at:
-👉 **http://localhost:8000/**
+👉 Local Host: **http://localhost:8000/**
+👉 Vercel Deploy: **https://gitrepo-jet.vercel.app/**
 
 Features:
 - **3D Card Hover Perspective**: Interactive cards that tilt on mouse movement with holographic gradients.
