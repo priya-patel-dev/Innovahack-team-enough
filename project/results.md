@@ -1,14 +1,14 @@
 # ZipPrompt Evaluation Results
-Generated on: 2026-08-02 13:56:00
-Evaluation Mode: **LIVE API (Gemini gemini-2.5-flash)**
+Generated on: 2026-08-03 09:09:15
+Evaluation Mode: **LIVE API (Gemini (gemini-2.5-flash))**
 
 ## Core Metrics Summary
 | Metric | Original | Compressed | Net Change / Score |
 | :--- | :---: | :---: | :---: |
 | **Token Count** | 4783 | 1423 | **70.2% reduction** |
 | **Prompt Cost (USD)** | $0.014349 | $0.004269 | **70.2% savings** |
-| **Average Latency** | 1.40s | 0.52s | **62.8% speedup** |
-| **Reasoning Retention** | 100.0% | 97.9% | **97.9% retention (Verified Gemini 2.5 API)** |
+| **Average Latency** | 40.96s | 46.15s | **-12.7% speedup** |
+| **Reasoning Retention** | 100.0% | 4.1% | **4.1% retention** |
 
 ## Detail Analysis
 
@@ -25,19 +25,44 @@ ZipPrompt parsed the codebase context into structural AST components, filtered i
 
 ### 3. Reasoning and Downstream Quality Retention
 By preserving the signature and high-relevance blocks in full while stripping boilerplate, the LLM retains functional context.
-- **Reasoning Retention Score:** **97.9%** (semantic similarity of answers across Live Gemini 2.5 API calls)
+- **Reasoning Retention Score:** **4.1%** (semantic similarity of answers)
 
-### 4. Live Model Response Verification (Raw Gemini 2.5 Flash Responses)
+### 4. Live Model Response Verification (Raw Gemini Responses)
 
-#### Question 1: "What does calculate_complex_user_metrics return if the user is not active?"
-- **Similarity Score**: 97.87%
+#### Question 1: "What is the name of the factory class defined in the code?"
+- **Similarity Score**: 20.64%
 - **Original Context Answer**:
-  > If the user is not active, `calculate_complex_user_metrics` returns a dictionary:
-  > ```python
-  > {"user_id": user_id, "status": "INACTIVE", "scores": None}
-  > ```
+  > The `AuthenticationService` class can be considered a factory class because it is responsible for creating new `UserProfile` instances through its `register_user` method.
+
+It also instantiates other service classes (`SessionTokenManager` and `UserMetricsEngine`) internally, acting as an orchestrator and initializer of these components.
 - **Compressed Context Answer**:
-  > If the user is not active, `calculate_complex_user_metrics` returns the following dictionary:
-  > ```python
-  > {"user_id": user_id, "status": "INACTIVE", "scores": None}
-  > ```
+  > The `AuthenticationService` class, specifically its `register_user` method (even though collapsed), suggests it acts as a factory for `UserProfile` objects.
+
+#### Question 2: "What are the instance variables initialized in the constructor of the factory?"
+- **Similarity Score**: 0.00%
+- **Original Context Answer**:
+  > 
+- **Compressed Context Answer**:
+  > 
+
+#### Question 3: "What does calculate_complex_user_metrics return if the user is not active?"
+- **Similarity Score**: 0.00%
+- **Original Context Answer**:
+  > 
+- **Compressed Context Answer**:
+  > 
+
+#### Question 4: "What multiplier is applied to the base score if the score exceeds 100 in calculate_complex_user_metrics?"
+- **Similarity Score**: 0.00%
+- **Original Context Answer**:
+  > 
+- **Compressed Context Answer**:
+  > 
+
+#### Question 5: "What is the return structure of calculate_complex_user_metrics on a successful run?"
+- **Similarity Score**: 0.00%
+- **Original Context Answer**:
+  > 
+- **Compressed Context Answer**:
+  > 
+
