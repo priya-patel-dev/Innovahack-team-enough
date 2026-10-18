@@ -20,6 +20,22 @@
       "dest": "project/backend/main.py"
     },
     {
+      "src": "/health",
+      "dest": "project/backend/main.py"
+    },
+    {
+      "src": "/tool-schema",
+      "dest": "project/backend/main.py"
+    },
+    {
+      "src": "/sample",
+      "dest": "project/backend/main.py"
+    },
+    {
+      "src": "/sample-log",
+      "dest": "project/backend/main.py"
+    },
+    {
       "src": "/(.*)",
       "dest": "project/frontend/console.html"
     }
