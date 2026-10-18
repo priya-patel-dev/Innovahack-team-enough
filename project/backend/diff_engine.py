@@ -1,15 +1,19 @@
 """
 Stage 3: Diff Engine.
 
-Maintains per-session state so repeat turns only pay for what changed.
-This is the piece that directly answers the "real-time interactions"
-pain point from the problem statement - most teams treat this as a
-single-shot prompt problem and skip session state entirely.
+Maintains session-aware hashing state across conversational turns.
+Ensures repeat requests in a multi-turn session only pay for changed components.
+Unchanged components are collapsed to lightweight pointers.
 
-Swap the in-memory dict for SQLite/Redis if you need persistence across
-backend restarts during the demo; in-memory is fine for a hackathon.
+Features:
+- Multi-tenant isolation: (tenant_id, session_id)
+- Thread-safe concurrency via RLock
+- LRU cache eviction to prevent memory leaks in production
 """
+import threading
+from collections import OrderedDict
 from dataclasses import dataclass
+from typing import Any
 
 
 @dataclass
@@ -20,28 +24,56 @@ class Pointer:
 
 
 class SessionCache:
-    def __init__(self):
-        # session_id -> {node_id: content_hash}
-        self._hashes: dict[str, dict[str, str]] = {}
+    def __init__(self, max_sessions: int = 5000):
+        self._max_sessions = max_sessions
+        # key: (tenant_id, session_id) -> dict[node_id, content_hash]
+        self._hashes: OrderedDict[tuple[str, str], dict[str, str]] = OrderedDict()
+        self._lock = threading.RLock()
 
-    def diff(self, session_id: str, nodes: list) -> tuple[list, list[Pointer]]:
+    def _get_key(self, session_id: str, tenant_id: str = "default") -> tuple[str, str]:
+        return (tenant_id or "default", session_id)
+
+    def diff(self, session_id: str, nodes: list[Any], tenant_id: str = "default") -> tuple[list[Any], list[Pointer]]:
         """
-        Returns (new_or_changed_nodes, unchanged_pointers).
-        `nodes` must expose .id and .content_hash().
+        Calculates delta between incoming nodes and cached session state.
+        Returns:
+            (new_or_changed_nodes, unchanged_pointers)
         """
-        prev = self._hashes.get(session_id, {})
-        new_or_changed = []
-        unchanged = []
+        key = self._get_key(session_id, tenant_id)
+        with self._lock:
+            prev = self._hashes.get(key, {})
+            # Touch key for LRU
+            if key in self._hashes:
+                self._hashes.move_to_end(key)
 
-        for node in nodes:
-            h = node.content_hash()
-            if prev.get(node.id) == h:
-                unchanged.append(Pointer(id=node.id, name=getattr(node, "name", node.id)))
-            else:
-                new_or_changed.append(node)
+            new_or_changed = []
+            unchanged = []
 
-        return new_or_changed, unchanged
+            for node in nodes:
+                h = node.content_hash()
+                if prev.get(node.id) == h:
+                    unchanged.append(Pointer(id=node.id, name=getattr(node, "name", node.id)))
+                else:
+                    new_or_changed.append(node)
 
-    def commit(self, session_id: str, nodes: list) -> None:
-        """Call after a successful compress() to update the session snapshot."""
-        self._hashes[session_id] = {n.id: n.content_hash() for n in nodes}
+            return new_or_changed, unchanged
+
+    def commit(self, session_id: str, nodes: list[Any], tenant_id: str = "default") -> None:
+        """Commits the latest node snapshot for the session."""
+        key = self._get_key(session_id, tenant_id)
+        with self._lock:
+            self._hashes[key] = {n.id: n.content_hash() for n in nodes}
+            self._hashes.move_to_end(key)
+
+            # Evict oldest sessions if exceeding max limit
+            while len(self._hashes) > self._max_sessions:
+                self._hashes.popitem(last=False)
+
+    def clear(self, session_id: str, tenant_id: str = "default") -> bool:
+        """Clear session cache for a tenant session."""
+        key = self._get_key(session_id, tenant_id)
+        with self._lock:
+            if key in self._hashes:
+                del self._hashes[key]
+                return True
+            return False
